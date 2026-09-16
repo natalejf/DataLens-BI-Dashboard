@@ -217,15 +217,15 @@
                         <h4>🤖 Prompt Sugerido para Pedirle a la IA</h4>
                         <p class="guide-text">Si tienes un archivo crudo o desordenado, cópiale este prompt a ChatGPT, Gemini o Claude para estructurarlo en 5 segundos y obtener las mejores visualizaciones:</p>
                         <div class="prompt-code-block" style="margin-top:10px;">
-                            <code id="promptTextModal">Por favor limpia y estructura este archivo CSV/Excel para mi plataforma de BI (DataLens BI):
+                            <code id="promptTextModal">Por favor, optimiza y organiza la estructura de mi archivo CSV/Excel para visualización en mi Dashboard de BI, sin alterar los datos originales ni eliminar información relevante:
 
-1. Elimina columnas con valores constantes repetidos en todas las filas (ej. IDs estáticos, país si es el mismo).
-2. Renombra encabezados a nombres limpios de negocio (ej. "Fecha", "Categoría", "Producto", "Monto", "Cantidad").
-3. Asegura tener:
-   - 1 columna de Fecha (formato YYYY-MM-DD).
-   - 1 a 3 columnas Categóricas con entre 3 y 15 variantes distintas (ej. Categoría, Producto, Zona).
-   - 1 a 2 columnas Numéricas cuantitativas limpias.
-4. Devuélveme el resultado en formato CSV.</code>
+1. Mantén todas las categorías y datos originales: Conserva las columnas de información de mi proyecto, asegurando que sigan reflejando las mismas categorías y valores originales.
+2. Formatea Encabezados: Renombra las columnas con nombres claros y profesionales (reemplazando guiones bajos "_" o códigos técnicos por nombres de negocio legibles).
+3. Limpia Tipos de Datos:
+   - Asegura que las fechas tengan formato estándar (YYYY-MM-DD).
+   - Deja los valores numéricos limpios (solo números y decimales con punto, sin símbolos de moneda "$" ni puntos de miles).
+4. Descarta Solo Redundancias Estáticas: Si existen columnas secundarias que repiten exactamente el mismo texto único en el 100% de las filas (ej. códigos estáticos o país único), elimínalas para evitar ruido visual en los gráficos.
+5. Devuélveme el archivo resultante en formato CSV limpio.</code>
                             <button class="btn-copy-prompt" onclick="copyPromptText('promptTextModal')">📋 Copiar Prompt para IA</button>
                         </div>
                     </div>
