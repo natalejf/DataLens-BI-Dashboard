@@ -1,0 +1,379 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                   PROMPT: DASHBOARD MINIMALISTA DE DATOS                      ║
+║                         Para desarrollo con IA/Developer                       ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════════════
+📋 DESCRIPCIÓN GENERAL DEL PROYECTO
+═══════════════════════════════════════════════════════════════════════════════
+
+Desarrollar un dashboard web de análisis de datos con interfaz MINIMALISTA que:
+- Lee múltiples formatos de archivos (Excel, CSV, JSON, TSV, parquet)
+- Detecta automáticamente tipos de datos en cada columna
+- Recomienda visualizaciones inteligentes según el contenido
+- Permite seleccionar qué gráficos mostrar
+- Funciona completamente en el navegador (sin servidor)
+- Diseño limpio, neutral y altamente responsive
+
+═══════════════════════════════════════════════════════════════════════════════
+🎨 REQUISITOS DE DISEÑO
+═══════════════════════════════════════════════════════════════════════════════
+
+PALETA DE COLORES NEUTRAL:
+  • Fondo principal: #f9f9f9 o #ffffff
+  • Fondo secundario: #f5f5f5
+  • Texto principal: #1a1a1a
+  • Texto secundario: #666666
+  • Bordes/Divisores: #e0e0e0
+  • Acento: #505050 (gris oscuro) o un solo color neutro
+  • Éxito: #4caf50
+  • Error: #f44336
+
+FILOSOFÍA MINIMALISTA:
+  ✓ Máximo 3 colores principales
+  ✓ Espaciado generoso (whitespace)
+  ✓ Tipografía clara y legible (sans-serif: Inter, Segoe, system fonts)
+  ✓ Sin gradientes ni efectos visuales innecesarios
+  ✓ Bordes sutiles, máximo 1px, color #e0e0e0
+  ✓ Iconos minimales (solo cuando sea necesario)
+  ✓ Buttons planos, sin sombras exageradas
+  ✓ Transiciones suaves pero rápidas (200-300ms)
+  ✓ Cero imágenes decorativas
+  ✓ Layout limpio y ordenado
+
+COMPONENTES PRINCIPALES:
+  1. Barra de encabezado: título + descripción simple
+  2. Zona de upload: área de drag-drop limpia
+  3. Panel de análisis: tarjetas con metadata de columnas
+  4. Selector de gráficos: checkboxes/toggles simples
+  5. Grid de gráficos: mostrar solo seleccionados
+  6. Tabla de datos: mostrar primeras filas
+
+═══════════════════════════════════════════════════════════════════════════════
+📱 REQUISITOS DE RESPONSIVE
+═══════════════════════════════════════════════════════════════════════════════
+
+✓ Mobile-first design
+✓ Breakpoints: 320px, 768px, 1200px
+✓ Stack vertical en móvil (una columna)
+✓ Dos columnas en tablet
+✓ Máximo 3 columnas en desktop
+✓ Font size base: 14px mobile, 16px desktop
+✓ Tap targets: mínimo 44px × 44px
+✓ Máximo ancho de contenedor: 1400px
+✓ Padding: 12px mobile, 20px desktop
+✓ Sin scroll horizontal excepto tablas
+
+═══════════════════════════════════════════════════════════════════════════════
+📂 FORMATOS DE ARCHIVO SOPORTADOS
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Excel (.xlsx, .xls)
+   - Múltiples hojas seleccionables
+   - Detección de encabezados
+
+2. CSV (.csv)
+   - Auto-detección de delimitadores (coma, punto y coma, tab)
+   - Encoding UTF-8, UTF-16, Latin-1
+   - Manejo de comillas
+
+3. TSV (.tsv, .txt con delimitador tab)
+   - Similar a CSV pero tabulaciones
+
+4. JSON (.json)
+   - Arrays de objetos
+   - Objetos anidados (aplanarlos si es posible)
+   - Líneas JSON (JSONL)
+
+5. Parquet (.parquet) - Opcional, si es posible
+   - Formato binario eficiente
+
+VALIDACIONES:
+  ✓ Máximo 50MB por archivo
+  ✓ Máximo 100,000 registros para visualización
+  ✓ Mensaje si archivo es muy grande
+  ✓ Manejo de caracteres especiales (ñ, acentos)
+  ✓ Espacios en nombres de columnas
+
+═══════════════════════════════════════════════════════════════════════════════
+🔍 DETECCIÓN INTELIGENTE DE TIPOS DE DATOS
+═══════════════════════════════════════════════════════════════════════════════
+
+El sistema debe detectar automáticamente para cada columna:
+
+TIPOS A DETECTAR:
+  1. NUMÉRICO
+     - Enteros, decimales, negativos, científicos
+     - Estadísticas: min, max, media, mediana, desv. estándar
+     - Gráficos recomendados: histograma, línea, dispersión, caja
+
+  2. CATEGÓRICO
+     - Strings, booleanos, categorías limitadas
+     - Estadísticas: valores únicos, frecuencia más común, % distribución
+     - Gráficos recomendados: barras, pie, donut, área apilada
+
+  3. TEMPORAL
+     - Fechas (yyyy-mm-dd, dd/mm/yyyy, etc.)
+     - Horas, timestamps
+     - Estadísticas: rango temporal, cantidad de períodos
+     - Gráficos recomendados: línea temporal, barras temporales, calendario
+
+  4. BOOLEANO
+     - True/False, Yes/No, 1/0
+     - Estadísticas: % verdadero, % falso
+     - Gráficos recomendados: pie, gauge, barras
+
+  5. TEXTO LARGO
+     - Descripciones, comentarios (>50 caracteres promedio)
+     - Estadísticas: largo promedio, valores únicos
+     - Gráficos: nube de palabras (opcional)
+
+  6. URL / EMAIL
+     - URLs válidas, emails
+     - Estadísticas: cantidad de registros válidos
+     - No mostrar gráficos típicos
+
+LÓGICA DE DETECCIÓN:
+  - Escanear primeras 100 filas
+  - Calcular % de valores que coinciden con tipo
+  - Si >80% numérico → tipo numérico
+  - Si <10 valores únicos → categórico
+  - Si coincide patrón fecha → temporal
+  - Etc.
+
+═══════════════════════════════════════════════════════════════════════════════
+📊 RECOMENDACIÓN AUTOMÁTICA DE GRÁFICOS
+═══════════════════════════════════════════════════════════════════════════════
+
+MATRIZ DE RECOMENDACIONES:
+
+Numérico + Numérico:
+  ✓ Primario: Dispersión (scatter)
+  ✓ Secundario: Línea, Histograma 2D
+
+Numérico + Categórico:
+  ✓ Primario: Barras agrupadas
+  ✓ Secundario: Caja (boxplot), Violín
+
+Categórico + Categórico:
+  ✓ Primario: Heatmap
+  ✓ Secundario: Barras agrupadas, Burbuja
+
+Temporal + Numérico:
+  ✓ Primario: Línea temporal
+  ✓ Secundario: Área, Barras temporales
+
+Solo Numérico:
+  ✓ Histograma, Densidad, Caja
+
+Solo Categórico:
+  ✓ Barras horizontales, Pie, Donut
+
+Solo Temporal:
+  ✓ Calendario heatmap, Timeline
+
+═══════════════════════════════════════════════════════════════════════════════
+✨ CARACTERÍSTICAS FUNCIONALES
+═══════════════════════════════════════════════════════════════════════════════
+
+CARGA DE ARCHIVO:
+  ✓ Drag & drop
+  ✓ Click para seleccionar
+  ✓ Progreso de carga
+  ✓ Indicador de tamaño del archivo
+  ✓ Mensajes de error claros
+
+ANÁLISIS AUTOMÁTICO:
+  ✓ Detecta tipo de cada columna
+  ✓ Calcula estadísticas básicas
+  ✓ Muestra resumen de datos
+  ✓ Sugiere gráficos automáticamente
+  ✓ Marcar "preseleccionados" en verde/negrita
+
+SELECCIÓN DE GRÁFICOS:
+  ✓ Toggle simple: on/off
+  ✓ Mostrar descripción breve de cada uno
+  ✓ Botón "Aplicar cambios"
+  ✓ Botón "Restablecer a recomendados"
+  ✓ Máximo 6-8 gráficos mostrados
+
+GENERACIÓN DE GRÁFICOS:
+  ✓ Solo mostrar gráficos seleccionados
+  ✓ Gráficos responsivos
+  ✓ Mantener aspecto 16:9 cuando sea posible
+  ✓ Incluye leyenda clara
+  ✓ Tonalidades neutrales en series
+  ✓ Permite descargar como PNG
+
+PANEL DE DATOS:
+  ✓ Tabla con primeras 50 filas
+  ✓ Scroll horizontal si es necesario
+  ✓ Encabezados fijos
+  ✓ Alternancia de colores de fila (opcional, minimalista)
+  ✓ Permite descargar datos filtrados
+
+BARRA LATERAL O PANEL LATERAL:
+  ✓ Resumen de archivo (nombre, registros, columnas)
+  ✓ Filtros básicos por columna (opcional)
+  ✓ Estadísticas generales
+
+═══════════════════════════════════════════════════════════════════════════════
+⚙️ ESPECIFICACIONES TÉCNICAS
+═══════════════════════════════════════════════════════════════════════════════
+
+TECNOLOGÍAS RECOMENDADAS:
+  • HTML5 + CSS3 + JavaScript vanilla
+  • O React con CSS modules/Tailwind (minimalista)
+  • Librería de gráficos: Chart.js, Plotly.js o D3.js (versión minimalista)
+  • Lectura de archivos: XLSX.js, PapaParse, json-parsing nativo
+  • Opcional: Apache Arrow o DuckDB.js para datasets grandes
+
+CONSIDERACIONES DE RENDIMIENTO:
+  ✓ Lazy loading de gráficos si son muchos
+  ✓ Virtualizar tabla si hay >5000 registros
+  ✓ Web Workers para procesamiento pesado
+  ✓ Caché de cálculos
+
+ALMACENAMIENTO:
+  ✓ LocalStorage para últimas configuraciones
+  ✓ Session storage para datos temporales
+  ✓ No almacenar datos sensibles
+
+═══════════════════════════════════════════════════════════════════════════════
+📐 LAYOUT ESPECÍFICO
+═══════════════════════════════════════════════════════════════════════════════
+
+ESTRUCTURA GENERAL:
+
+┌─────────────────────────────────────────────────────┐
+│  Header (título + descripción)                      │
+├─────────────────────────────────────────────────────┤
+│  Zona de Upload (drag & drop)                       │
+├─────────────────────────────────────────────────────┤
+│  Información del Archivo (si está cargado)          │
+├─────────────────────────────────────────────────────┤
+│  Panel de Análisis de Columnas (3 columnas)         │
+│  - Nombre columna                                   │
+│  - Tipo detectado                                   │
+│  - Estadísticas básicas                             │
+├─────────────────────────────────────────────────────┤
+│  Selector de Gráficos                               │
+│  - Toggle/Checkbox para cada gráfico                │
+│  - Botón: Aplicar / Restablecer                     │
+├─────────────────────────────────────────────────────┤
+│  Grid de Gráficos (2-3 columnas, responsive)        │
+├─────────────────────────────────────────────────────┤
+│  Tabla de Datos Brutos                              │
+└─────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+🎯 COMPORTAMIENTO ESPERADO
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Usuario abre la página
+   → Ve header + zona de upload vacía
+   → Mensaje: "Carga un archivo para comenzar"
+
+2. Usuario carga archivo
+   → Spinner de carga
+   → Sistema analiza columnas (1-2 segundos)
+   → Muestra panel de análisis
+   → Preselectiona gráficos recomendados automáticamente
+
+3. Usuario ve análisis
+   → 3+ columnas con cards minimalistas
+   → Cada card muestra: tipo, estadísticas, recomendaciones
+
+4. Usuario ajusta gráficos
+   → Toggles simples (on/off)
+   → Texto pequeño describiendo cada uno
+   → Botón "Aplicar cambios"
+
+5. Dashboard se genera
+   → Solo gráficos seleccionados
+   → Titulo + subtítulo explicativo
+   → Datos visuales claros, sin ruido
+   → Tabla debajo con datos brutos
+
+6. Usuario puede
+   → Descargar gráfico como PNG
+   → Descargar datos como CSV
+   → Cambiar gráficos nuevamente
+   → Cargar otro archivo
+
+═══════════════════════════════════════════════════════════════════════════════
+🚀 FUNCIONALIDADES ADICIONALES (Opcional)
+═══════════════════════════════════════════════════════════════════════════════
+
+• Filtrar datos en la tabla (buscar, rango numérico)
+• Ordenar columnas en tabla
+• Tema claro/oscuro (versión neutral también)
+• Exportar configuración del dashboard a JSON
+• Importar configuración guardada
+• Comparación de dos archivos
+• Historial de últimos archivos cargados
+• Tooltips con descripciones de gráficos
+
+═══════════════════════════════════════════════════════════════════════════════
+📝 NOMBRES Y MENSAJES
+═══════════════════════════════════════════════════════════════════════════════
+
+Usar lenguaje SIMPLE, DIRECTO, PROFESIONAL:
+
+✓ "Carga tus datos"
+✓ "Arrastra un archivo o haz clic aquí"
+✓ "Analizando datos..."
+✓ "Datos cargados correctamente"
+✓ "Análisis de columnas"
+✓ "Tipo de dato detectado"
+✓ "Gráficos recomendados"
+✓ "Selecciona visualizaciones"
+✓ "Aplicar cambios"
+✓ "Descargar gráfico"
+✓ "Descargar datos"
+
+❌ Evitar:
+  - "¡Hola!" o saludos excesivos
+  - Emojis (excepto en iconos)
+  - Lenguaje marketero
+  - Coloquialismos
+
+═══════════════════════════════════════════════════════════════════════════════
+✅ CRITERIOS DE ACEPTACIÓN
+═══════════════════════════════════════════════════════════════════════════════
+
+✓ El dashboard carga sin errores en Chrome, Firefox, Safari, Edge
+✓ Funciona perfectamente en móvil (iPhone, Android)
+✓ Soporta todos los formatos mencionados
+✓ Detecta tipos de datos con >85% de precisión
+✓ Interfaz tarda <2 segundos en responder
+✓ Máximo peso: 500KB (JS + CSS)
+✓ Cero dependencias externas innecesarias
+✓ Código limpio y comentado
+✓ Sin errores en consola
+✓ Paleta de colores neutral en toda la interfaz
+✓ Whitespace generoso (no apretado)
+✓ Tipografía legible en todos los tamaños
+
+═══════════════════════════════════════════════════════════════════════════════
+📚 EJEMPLO DE ARCHIVO ESPERADO
+═══════════════════════════════════════════════════════════════════════════════
+
+Input CSV:
+Fecha,Producto,Ventas,Region,Clientes,Margen
+2024-01-01,A,15000,Norte,45,0.25
+2024-01-02,B,18500,Sur,52,0.30
+2024-01-03,A,22000,Este,63,0.28
+2024-01-04,C,19200,Oeste,38,0.22
+
+Output esperado:
+- Detecta 4 columnas numéricas + 1 temporal + 1 categórica
+- Recomienda: línea temporal para ventas, barras para región
+- Genera gráficos automáticamente preseleccionados
+- Muestra estadísticas de cada columna
+- Permite toggle individual de cada gráfico
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Este prompt puede usarse directamente con cualquier IA (Claude, ChatGPT, Gemini)
+o compartirse con un desarrollador para implementación.
