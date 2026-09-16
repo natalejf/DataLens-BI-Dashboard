@@ -217,15 +217,13 @@
                         <h4>🤖 Prompt Sugerido para Pedirle a la IA</h4>
                         <p class="guide-text">Si tienes un archivo crudo o desordenado, cópiale este prompt a ChatGPT, Gemini o Claude para estructurarlo en 5 segundos y obtener las mejores visualizaciones:</p>
                         <div class="prompt-code-block" style="margin-top:10px;">
-                            <code id="promptTextModal">Por favor, optimiza y organiza la estructura de mi archivo CSV/Excel para visualización en mi Dashboard de BI, sin alterar los datos originales ni eliminar información relevante:
+                            <code id="promptTextModal">Por favor, actúa exclusivamente como un formateador de sintaxis CSV sin alterar ningún dato. NO resumas, NO agrupes filas y NO calcules promedios:
 
-1. Mantén todas las categorías y datos originales: Conserva las columnas de información de mi proyecto, asegurando que sigan reflejando las mismas categorías y valores originales.
-2. Formatea Encabezados: Renombra las columnas con nombres claros y profesionales (reemplazando guiones bajos "_" o códigos técnicos por nombres de negocio legibles).
-3. Limpia Tipos de Datos:
-   - Asegura que las fechas tengan formato estándar (YYYY-MM-DD).
-   - Deja los valores numéricos limpios (solo números y decimales con punto, sin símbolos de moneda "$" ni puntos de miles).
-4. Descarta Solo Redundancias Estáticas: Si existen columnas secundarias que repiten exactamente el mismo texto único en el 100% de las filas (ej. códigos estáticos o país único), elimínalas para evitar ruido visual en los gráficos.
-5. Devuélveme el archivo resultante en formato CSV limpio.</code>
+1. Conserva el 100% de las filas de datos exactamente como están, manteniendo todas las categorías y registros originales.
+2. Encabezados Limpios: Asegura que la primera fila contenga nombres de columna claros (sin códigos técnicos ni guiones bajos).
+3. Formato Numérico Estándar: Los números deben usar punto (.) como separador decimal (sin símbolos de moneda "$" ni puntos de miles).
+4. Formato de Fechas: Si hay columnas de fecha, usa el formato estándar (YYYY-MM-DD).
+5. Devuelve ÚNICAMENTE el resultado en texto plano con formato CSV separado por comas, listo para guardar o copiar.</code>
                             <button class="btn-copy-prompt" onclick="copyPromptText('promptTextModal')">📋 Copiar Prompt para IA</button>
                         </div>
                     </div>
@@ -250,6 +248,6 @@
             </div>
         </div>
     </div>
-    <script src="app.js?v=20260916_v4"></script>
+    <script src="app.js?v=20260916_v5"></script>
 </body>
 </html>
