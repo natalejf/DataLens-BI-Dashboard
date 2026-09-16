@@ -24,7 +24,7 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
-# ADVANCED LIGHT THEME CUSTOM CSS (Perfect Grid Alignment & Flex Card Heights)
+# ADVANCED LIGHT THEME CUSTOM CSS (Clean Native Streamlit Styling)
 # ---------------------------------------------------------
 st.markdown("""
 <style>
@@ -124,40 +124,26 @@ st.markdown("""
     .delta-positive { background: #dcfce7; color: #166534; }
     .delta-neutral { background: #e0e7ff; color: #3730a3; }
     .delta-warning { background: #fef3c7; color: #92400e; }
-    
-    /* Section containers with strict height alignment */
-    .ds-card {
-        background: #ffffff;
-        border-radius: 14px;
-        padding: 1.25rem;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-        margin-bottom: 1.25rem;
-        min-height: 520px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
 
     /* Automated Insight Explanatory Card */
     .insight-card {
         background: #f0fdf4;
         border-left: 4px solid #16a34a;
         border-radius: 8px;
-        padding: 0.9rem 1.1rem;
-        margin-top: 0.8rem;
+        padding: 0.8rem 1rem;
+        margin-top: 0.6rem;
     }
     .insight-title {
         font-weight: 700;
         color: #15803d;
-        font-size: 0.88rem;
-        margin-bottom: 0.3rem;
+        font-size: 0.85rem;
+        margin-bottom: 0.2rem;
         display: flex;
         align-items: center;
         gap: 6px;
     }
     .insight-body {
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         color: #166534;
         line-height: 1.4;
     }
@@ -206,10 +192,6 @@ st.markdown("""
         }
         .metric-value {
             font-size: 1.4rem;
-        }
-        .ds-card {
-            padding: 0.9rem;
-            min-height: auto;
         }
         .stTabs [data-baseweb="tab"] {
             font-size: 0.85rem;
@@ -598,175 +580,171 @@ with tab_full_dashboard:
             fig_g3.update_layout(height=240, margin=dict(l=25, r=25, t=55, b=25), template=plotly_template)
             st.plotly_chart(fig_g3, use_container_width=True)
 
-    # Main Visualizations Grid (ROW 1: PERFECT ALIGNMENT)
+    # Main Visualizations Grid (Native Streamlit Containers - No Empty White Boxes)
     row1_c1, row1_c2 = st.columns([6, 6])
     
     with row1_c1:
-        st.markdown('<div class="ds-card">', unsafe_allow_html=True)
-        if date_cols and num_cols:
-            d_col = date_cols[0]
-            metric_col = num_cols[0]
-            df_time = df_filtered.groupby(d_col)[metric_col].sum().reset_index()
-            df_time['Moving_Avg'] = df_time[metric_col].rolling(window=3, min_periods=1).mean()
-            
-            fig_trend = go.Figure()
-            fig_trend.add_trace(go.Scatter(
-                x=df_time[d_col], y=df_time[metric_col],
-                mode='lines+markers', name=metric_col,
-                line=dict(color=palette_colors[0], width=2.5),
-                marker=dict(size=6)
-            ))
-            fig_trend.add_trace(go.Scatter(
-                x=df_time[d_col], y=df_time['Moving_Avg'],
-                mode='lines', name='Media Móvil (Suavizada)',
-                line=dict(color=palette_colors[2], width=2, dash='dash')
-            ))
-            fig_trend.update_layout(
-                title=f"📈 Tendencia Temporal & Suavizado de {metric_col}",
-                template=plotly_template,
-                height=350,
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                margin=dict(l=10, r=10, t=40, b=10)
-            )
-            st.plotly_chart(fig_trend, use_container_width=True)
-            
-            st.markdown(f"""
-            <div class="insight-card">
-                <div class="insight-title">💡 ¿Qué nos dice la tendencia temporal?</div>
-                <div class="insight-body">
-                    La curva azul muestra los valores de <b>{metric_col}</b> a lo largo del tiempo ({d_col}). La media móvil verde suaviza la curva para identificar si la tendencia estructural es de crecimiento constante o contracción.
+        with st.container(border=True):
+            if date_cols and num_cols:
+                d_col = date_cols[0]
+                metric_col = num_cols[0]
+                df_time = df_filtered.groupby(d_col)[metric_col].sum().reset_index()
+                df_time['Moving_Avg'] = df_time[metric_col].rolling(window=3, min_periods=1).mean()
+                
+                fig_trend = go.Figure()
+                fig_trend.add_trace(go.Scatter(
+                    x=df_time[d_col], y=df_time[metric_col],
+                    mode='lines+markers', name=metric_col,
+                    line=dict(color=palette_colors[0], width=2.5),
+                    marker=dict(size=6)
+                ))
+                fig_trend.add_trace(go.Scatter(
+                    x=df_time[d_col], y=df_time['Moving_Avg'],
+                    mode='lines', name='Media Móvil (Suavizada)',
+                    line=dict(color=palette_colors[2], width=2, dash='dash')
+                ))
+                fig_trend.update_layout(
+                    title=f"📈 Tendencia Temporal & Suavizado de {metric_col}",
+                    template=plotly_template,
+                    height=350,
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                    margin=dict(l=10, r=10, t=40, b=10)
+                )
+                st.plotly_chart(fig_trend, use_container_width=True)
+                
+                st.markdown(f"""
+                <div class="insight-card">
+                    <div class="insight-title">💡 ¿Qué nos dice la tendencia temporal?</div>
+                    <div class="insight-body">
+                        La curva azul muestra los valores de <b>{metric_col}</b> a lo largo del tiempo ({d_col}). La media móvil verde suaviza la curva para identificar si la tendencia estructural es de crecimiento constante o contracción.
+                    </div>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        elif len(num_cols) >= 2:
-            fig_scat = px.scatter(
-                df_filtered, x=num_cols[0], y=num_cols[1],
-                color=str_cols[0] if str_cols else None,
-                title=f"🎯 Dispersión: {num_cols[0]} vs {num_cols[1]}",
-                template=plotly_template,
-                color_discrete_sequence=palette_colors
-            )
-            fig_scat.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
-            st.plotly_chart(fig_scat, use_container_width=True)
-            st.markdown(f"""
-            <div class="insight-card">
-                <div class="insight-title">💡 Análisis de Dispersión</div>
-                <div class="insight-body">
-                    Evalúa la relación entre <b>{num_cols[0]}</b> e <b>{num_cols[1]}</b>. Observa la concentración de puntos para detectar agrupaciones naturales.
+                """, unsafe_allow_html=True)
+                
+            elif len(num_cols) >= 2:
+                fig_scat = px.scatter(
+                    df_filtered, x=num_cols[0], y=num_cols[1],
+                    color=str_cols[0] if str_cols else None,
+                    title=f"🎯 Dispersión: {num_cols[0]} vs {num_cols[1]}",
+                    template=plotly_template,
+                    color_discrete_sequence=palette_colors
+                )
+                fig_scat.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
+                st.plotly_chart(fig_scat, use_container_width=True)
+                st.markdown(f"""
+                <div class="insight-card">
+                    <div class="insight-title">💡 Análisis de Dispersión</div>
+                    <div class="insight-body">
+                        Evalúa la relación entre <b>{num_cols[0]}</b> e <b>{num_cols[1]}</b>. Observa la concentración de puntos para detectar agrupaciones naturales.
+                    </div>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            fig_hist = px.histogram(
-                df_filtered, x=num_cols[0] if num_cols else df_filtered.columns[0],
-                title="📊 Distribución General de Datos",
-                template=plotly_template,
-                color_discrete_sequence=palette_colors
-            )
-            fig_hist.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
-            st.plotly_chart(fig_hist, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+            else:
+                fig_hist = px.histogram(
+                    df_filtered, x=num_cols[0] if num_cols else df_filtered.columns[0],
+                    title="📊 Distribución General de Datos",
+                    template=plotly_template,
+                    color_discrete_sequence=palette_colors
+                )
+                fig_hist.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
+                st.plotly_chart(fig_hist, use_container_width=True)
         
     with row1_c2:
-        st.markdown('<div class="ds-card">', unsafe_allow_html=True)
-        if str_cols and num_cols:
-            cat_c = str_cols[0]
-            val_c = num_cols[0]
-            df_cat = df_filtered.groupby(cat_c)[val_c].sum().reset_index().sort_values(by=val_c, ascending=False).head(10)
-            
-            fig_bar = px.bar(
-                df_cat, y=cat_c, x=val_c,
-                orientation='h',
-                title=f"🏆 Top {cat_c} por {val_c}",
-                template=plotly_template,
-                color=val_c,
-                color_continuous_scale="Viridis"
-            )
-            fig_bar.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
-            st.plotly_chart(fig_bar, use_container_width=True)
-            
-            top_category_name = df_cat.iloc[0][cat_c]
-            top_category_val = df_cat.iloc[0][val_c]
-            st.markdown(f"""
-            <div class="insight-card">
-                <div class="insight-title">💡 Interpretación por Categorías</div>
-                <div class="insight-body">
-                    La entidad líder es <b>{top_category_name}</b> con un acumulado de <b>{top_category_val:,.2f}</b> ({val_c}), representando el volumen dominante del negocio en esta dimensión.
+        with st.container(border=True):
+            if str_cols and num_cols:
+                cat_c = str_cols[0]
+                val_c = num_cols[0]
+                df_cat = df_filtered.groupby(cat_c)[val_c].sum().reset_index().sort_values(by=val_c, ascending=False).head(10)
+                
+                fig_bar = px.bar(
+                    df_cat, y=cat_c, x=val_c,
+                    orientation='h',
+                    title=f"🏆 Top {cat_c} por {val_c}",
+                    template=plotly_template,
+                    color=val_c,
+                    color_continuous_scale="Viridis"
+                )
+                fig_bar.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
+                st.plotly_chart(fig_bar, use_container_width=True)
+                
+                top_category_name = df_cat.iloc[0][cat_c]
+                top_category_val = df_cat.iloc[0][val_c]
+                st.markdown(f"""
+                <div class="insight-card">
+                    <div class="insight-title">💡 Interpretación por Categorías</div>
+                    <div class="insight-body">
+                        La entidad líder es <b>{top_category_name}</b> con un acumulado de <b>{top_category_val:,.2f}</b> ({val_c}), representando el volumen dominante del negocio en esta dimensión.
+                    </div>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            fig_hist = px.histogram(
-                df_filtered, x=num_cols[0] if num_cols else df_filtered.columns[0],
-                title="📊 Distribución General de Datos",
-                template=plotly_template,
-                color_discrete_sequence=palette_colors
-            )
-            fig_hist.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
-            st.plotly_chart(fig_hist, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+            else:
+                fig_hist = px.histogram(
+                    df_filtered, x=num_cols[0] if num_cols else df_filtered.columns[0],
+                    title="📊 Distribución General de Datos",
+                    template=plotly_template,
+                    color_discrete_sequence=palette_colors
+                )
+                fig_hist.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
+                st.plotly_chart(fig_hist, use_container_width=True)
 
     # ROW 2: ADVANCED RESOURCE (TREEMAP HIERARCHICAL BREAKDOWN)
     if str_cols and num_cols:
         row2_c1, row2_c2 = st.columns([6, 6])
         with row2_c1:
-            st.markdown('<div class="ds-card">', unsafe_allow_html=True)
-            cat_c = str_cols[0]
-            val_c = num_cols[0]
-            df_tree = df_filtered.groupby(cat_c)[val_c].sum().reset_index()
-            
-            fig_tree = px.treemap(
-                df_tree, path=[cat_c], values=val_c,
-                title=f"🌳 Treemap Jerárquico de Proporción por {cat_c}",
-                template=plotly_template,
-                color=val_c,
-                color_continuous_scale="Teal"
-            )
-            fig_tree.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
-            st.plotly_chart(fig_tree, use_container_width=True)
-            
-            st.markdown(f"""
-            <div class="insight-card">
-                <div class="insight-title">💡 Proporción Visual Treemap</div>
-                <div class="insight-body">
-                    El tamaño de cada rectángulo es proporcional a la contribución de <b>{cat_c}</b> en <b>{val_c}</b>. Permite identificar de un vistazo las entidades que más pesan en el total.
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-        with row2_c2:
-            st.markdown('<div class="ds-card">', unsafe_allow_html=True)
-            if len(num_cols) >= 2:
-                sec_c = num_cols[1]
-                df_scat2 = px.scatter(
-                    df_filtered, x=num_cols[0], y=sec_c,
-                    color=str_cols[0] if str_cols else None,
-                    size=num_cols[0],
-                    title=f"🫧 Análisis de Burbujas: {num_cols[0]} vs {sec_c}",
-                    template=plotly_template
+            with st.container(border=True):
+                cat_c = str_cols[0]
+                val_c = num_cols[0]
+                df_tree = df_filtered.groupby(cat_c)[val_c].sum().reset_index()
+                
+                fig_tree = px.treemap(
+                    df_tree, path=[cat_c], values=val_c,
+                    title=f"🌳 Treemap Jerárquico de Proporción por {cat_c}",
+                    template=plotly_template,
+                    color=val_c,
+                    color_continuous_scale="Teal"
                 )
-                df_scat2.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
-                st.plotly_chart(df_scat2, use_container_width=True)
+                fig_tree.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
+                st.plotly_chart(fig_tree, use_container_width=True)
                 
                 st.markdown(f"""
                 <div class="insight-card">
-                    <div class="insight-title">💡 Gráfico de Burbujas Mutivariable</div>
+                    <div class="insight-title">💡 Proporción Visual Treemap</div>
                     <div class="insight-body">
-                        Relaciona la magnitud de <b>{num_cols[0]}</b> con <b>{sec_c}</b>. El tamaño de cada burbuja es proporcional al peso relativo del registro.
+                        El tamaño de cada rectángulo es proporcional a la contribución de <b>{cat_c}</b> en <b>{val_c}</b>. Permite identificar de un vistazo las entidades que más pesan en el total.
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-            else:
-                fig_box = px.box(
-                    df_filtered, y=num_cols[0],
-                    title=f"📦 Diagrama de Caja (Boxplot) de {num_cols[0]}",
-                    template=plotly_template
-                )
-                fig_box.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
-                st.plotly_chart(fig_box, use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+            
+        with row2_c2:
+            with st.container(border=True):
+                if len(num_cols) >= 2:
+                    sec_c = num_cols[1]
+                    df_scat2 = px.scatter(
+                        df_filtered, x=num_cols[0], y=sec_c,
+                        color=str_cols[0] if str_cols else None,
+                        size=num_cols[0],
+                        title=f"🫧 Análisis de Burbujas: {num_cols[0]} vs {sec_c}",
+                        template=plotly_template
+                    )
+                    df_scat2.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
+                    st.plotly_chart(df_scat2, use_container_width=True)
+                    
+                    st.markdown(f"""
+                    <div class="insight-card">
+                        <div class="insight-title">💡 Gráfico de Burbujas Multivariable</div>
+                        <div class="insight-body">
+                            Relaciona la magnitud de <b>{num_cols[0]}</b> con <b>{sec_c}</b>. El tamaño de cada burbuja es proporcional al peso relativo del registro.
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    fig_box = px.box(
+                        df_filtered, y=num_cols[0],
+                        title=f"📦 Diagrama de Caja (Boxplot) de {num_cols[0]}",
+                        template=plotly_template
+                    )
+                    fig_box.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
+                    st.plotly_chart(fig_box, use_container_width=True)
 
     st.divider()
 
@@ -783,155 +761,119 @@ with tab_full_dashboard:
     # --- SUBTAB 1: K-MEANS CLUSTERING ---
     with ds_subtab1:
         if len(num_cols) >= 2:
-            st.markdown('<div class="ds-card">', unsafe_allow_html=True)
-            col_ml1, col_ml2 = st.columns([1, 3])
-            
-            with col_ml1:
-                st.markdown("#### Configuración del Modelo")
-                selected_features = st.multiselect("Variables Numéricas", num_cols, default=num_cols[:min(4, len(num_cols))])
-                n_clusters = st.slider("Número de Clusters (K)", min_value=2, max_value=min(6, max(2, len(df_filtered))), value=3)
+            with st.container(border=True):
+                col_ml1, col_ml2 = st.columns([1, 3])
                 
-            with col_ml2:
-                if len(selected_features) >= 2 and len(df_filtered) >= n_clusters:
-                    try:
-                        df_cluster = df_filtered[selected_features].dropna()
-                        if len(df_cluster) >= n_clusters:
-                            scaler = StandardScaler()
-                            scaled_data = scaler.fit_transform(df_cluster)
-                            
-                            kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-                            clusters = kmeans.fit_predict(scaled_data)
-                            df_cluster['Cluster'] = [f"Cluster {c+1}" for c in clusters]
-                            
-                            pca = PCA(n_components=2)
-                            pca_coords = pca.fit_transform(scaled_data)
-                            df_cluster['PCA1'] = pca_coords[:, 0]
-                            df_cluster['PCA2'] = pca_coords[:, 1]
-                            
-                            var_exp = pca.explained_variance_ratio_.sum() * 100
-                            
-                            fig_pca = px.scatter(
-                                df_cluster, x='PCA1', y='PCA2', color='Cluster',
-                                hover_data=selected_features,
-                                title=f"🌌 Proyección de Clusters en 2D (PCA - Varianza Explicada: {var_exp:.1f}%)",
-                                template=plotly_template,
-                                color_discrete_sequence=palette_colors
-                            )
-                            fig_pca.update_traces(marker=dict(size=9, opacity=0.8, line=dict(width=1, color='white')))
-                            fig_pca.update_layout(height=380, margin=dict(l=10, r=10, t=40, b=10))
-                            st.plotly_chart(fig_pca, use_container_width=True)
-                            
-                            cluster_counts = df_cluster['Cluster'].value_counts()
-                            dominant_cluster = cluster_counts.index[0]
-                            st.markdown(f"""
-                            <div class="insight-card">
-                                <div class="insight-title">💡 ¿Qué significan estos Clusters?</div>
-                                <div class="insight-body">
-                                    El algoritmo <b>K-Means</b> dividió tus datos en <b>{n_clusters} grupos homogéneos</b>. El grupo más grande es <b>{dominant_cluster}</b> con <b>{cluster_counts.iloc[0]} observaciones ({cluster_counts.iloc[0]/len(df_cluster)*100:.1f}%)</b>. La proyección PCA 2D explica el <b>{var_exp:.1f}% de la varianza total</b>.
+                with col_ml1:
+                    st.markdown("#### Configuración del Modelo")
+                    selected_features = st.multiselect("Variables Numéricas", num_cols, default=num_cols[:min(4, len(num_cols))])
+                    n_clusters = st.slider("Número de Clusters (K)", min_value=2, max_value=min(6, max(2, len(df_filtered))), value=3)
+                    
+                with col_ml2:
+                    if len(selected_features) >= 2 and len(df_filtered) >= n_clusters:
+                        try:
+                            df_cluster = df_filtered[selected_features].dropna()
+                            if len(df_cluster) >= n_clusters:
+                                scaler = StandardScaler()
+                                scaled_data = scaler.fit_transform(df_cluster)
+                                
+                                kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+                                clusters = kmeans.fit_predict(scaled_data)
+                                df_cluster['Cluster'] = [f"Cluster {c+1}" for c in clusters]
+                                
+                                pca = PCA(n_components=2)
+                                pca_coords = pca.fit_transform(scaled_data)
+                                df_cluster['PCA1'] = pca_coords[:, 0]
+                                df_cluster['PCA2'] = pca_coords[:, 1]
+                                
+                                var_exp = pca.explained_variance_ratio_.sum() * 100
+                                
+                                fig_pca = px.scatter(
+                                    df_cluster, x='PCA1', y='PCA2', color='Cluster',
+                                    hover_data=selected_features,
+                                    title=f"🌌 Proyección de Clusters en 2D (PCA - Varianza Explicada: {var_exp:.1f}%)",
+                                    template=plotly_template,
+                                    color_discrete_sequence=palette_colors
+                                )
+                                fig_pca.update_traces(marker=dict(size=9, opacity=0.8, line=dict(width=1, color='white')))
+                                fig_pca.update_layout(height=380, margin=dict(l=10, r=10, t=40, b=10))
+                                st.plotly_chart(fig_pca, use_container_width=True)
+                                
+                                cluster_counts = df_cluster['Cluster'].value_counts()
+                                dominant_cluster = cluster_counts.index[0]
+                                st.markdown(f"""
+                                <div class="insight-card">
+                                    <div class="insight-title">💡 ¿Qué significan estos Clusters?</div>
+                                    <div class="insight-body">
+                                        El algoritmo <b>K-Means</b> dividió tus datos en <b>{n_clusters} grupos homogéneos</b>. El grupo más grande es <b>{dominant_cluster}</b> con <b>{cluster_counts.iloc[0]} observaciones ({cluster_counts.iloc[0]/len(df_cluster)*100:.1f}%)</b>. La proyección PCA 2D explica el <b>{var_exp:.1f}% de la varianza total</b>.
+                                    </div>
                                 </div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        else:
-                            st.warning("No hay suficientes datos limpios para formar el número de clusters seleccionado.")
-                    except Exception as e:
-                        st.error(f"Error procesando Clustering: {e}")
-                else:
-                    st.info("Selecciona al menos 2 variables numéricas para el análisis de Clustering.")
-            st.markdown('</div>', unsafe_allow_html=True)
+                                """, unsafe_allow_html=True)
+                            else:
+                                st.warning("No hay suficientes datos limpios para formar el número de clusters seleccionado.")
+                        except Exception as e:
+                            st.error(f"Error procesando Clustering: {e}")
+                    else:
+                        st.info("Selecciona al menos 2 variables numéricas para el análisis de Clustering.")
         else:
             st.warning("Se requieren al menos 2 columnas numéricas en el dataset para ejecutar K-Means.")
 
     # --- SUBTAB 2: ANOMALY / OUTLIER DETECTION ---
     with ds_subtab2:
         if len(num_cols) >= 1:
-            st.markdown('<div class="ds-card">', unsafe_allow_html=True)
-            col_anom1, col_anom2 = st.columns([1, 3])
-            
-            with col_anom1:
-                st.markdown("#### Parámetros de Anomalía")
-                anom_feature = st.selectbox("Variable Objetivo", num_cols, index=0)
-                contamination = st.slider("Porcentaje Estimado de Anomalías (%)", 1, 15, 5) / 100.0
+            with st.container(border=True):
+                col_anom1, col_anom2 = st.columns([1, 3])
                 
-            with col_anom2:
-                values = df_filtered[[anom_feature]].dropna()
-                if len(values) >= 5:
-                    try:
-                        iso_forest = IsolationForest(contamination=contamination, random_state=42)
-                        preds = iso_forest.fit_predict(values)
-                        values['Anomaly'] = np.where(preds == -1, 'Anomalía Detectada', 'Normal')
-                        
-                        fig_anom = px.strip(
-                            values, x='Anomaly', y=anom_feature, color='Anomaly',
-                            color_discrete_map={'Normal': '#6366f1', 'Anomalía Detectada': '#ef4444'},
-                            title=f"🚨 Detección de Anomalías (Isolation Forest) sobre {anom_feature}",
-                            template=plotly_template
-                        )
-                        fig_anom.update_layout(height=380, margin=dict(l=10, r=10, t=40, b=10))
-                        st.plotly_chart(fig_anom, use_container_width=True)
-                        
-                        n_anom = (preds == -1).sum()
-                        st.markdown(f"""
-                        <div class="insight-card">
-                            <div class="insight-title">💡 ¿Qué representan los puntos rojos de Anomalía?</div>
-                            <div class="insight-body">
-                                <b>Isolation Forest</b> identificó <b>{n_anom} observaciones anómalas</b> en la variable <b>{anom_feature}</b>. Estos puntos rojos son valores extremos inusuales que requieren revisión operativa o control de calidad.
+                with col_anom1:
+                    st.markdown("#### Parámetros de Anomalía")
+                    anom_feature = st.selectbox("Variable Objetivo", num_cols, index=0)
+                    contamination = st.slider("Porcentaje Estimado de Anomalías (%)", 1, 15, 5) / 100.0
+                    
+                with col_anom2:
+                    values = df_filtered[[anom_feature]].dropna()
+                    if len(values) >= 5:
+                        try:
+                            iso_forest = IsolationForest(contamination=contamination, random_state=42)
+                            preds = iso_forest.fit_predict(values)
+                            values['Anomaly'] = np.where(preds == -1, 'Anomalía Detectada', 'Normal')
+                            
+                            fig_anom = px.strip(
+                                values, x='Anomaly', y=anom_feature, color='Anomaly',
+                                color_discrete_map={'Normal': '#6366f1', 'Anomalía Detectada': '#ef4444'},
+                                title=f"🚨 Detección de Anomalías (Isolation Forest) sobre {anom_feature}",
+                                template=plotly_template
+                            )
+                            fig_anom.update_layout(height=380, margin=dict(l=10, r=10, t=40, b=10))
+                            st.plotly_chart(fig_anom, use_container_width=True)
+                            
+                            n_anom = (preds == -1).sum()
+                            st.markdown(f"""
+                            <div class="insight-card">
+                                <div class="insight-title">💡 ¿Qué representan los puntos rojos de Anomalía?</div>
+                                <div class="insight-body">
+                                    <b>Isolation Forest</b> identificó <b>{n_anom} observaciones anómalas</b> en la variable <b>{anom_feature}</b>. Estos puntos rojos son valores extremos inusuales que requieren revisión operativa o control de calidad.
+                                </div>
                             </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    except Exception as e:
-                        st.error(f"No se pudo ejecutar la detección de anomalías: {e}")
-                else:
-                    st.info("Se necesitan al menos 5 registros para evaluar anomalías.")
-            st.markdown('</div>', unsafe_allow_html=True)
+                            """, unsafe_allow_html=True)
+                        except Exception as e:
+                            st.error(f"No se pudo ejecutar la detección de anomalías: {e}")
+                    else:
+                        st.info("Se necesitan al menos 5 registros para evaluar anomalías.")
 
     # --- SUBTAB 3: REGRESSION & PREDICTION ---
     with ds_subtab3:
         if len(num_cols) >= 2:
-            st.markdown('<div class="ds-card">', unsafe_allow_html=True)
-            r_col1, r_col2 = st.columns(2)
-            with r_col1:
-                x_reg = st.selectbox("Variable X (Predictora)", num_cols, index=0)
-            with r_col2:
-                y_reg = st.selectbox("Variable Y (Objetivo)", num_cols, index=min(1, len(num_cols)-1))
+            with st.container(border=True):
+                r_col1, r_col2 = st.columns(2)
+                with r_col1:
+                    x_reg = st.selectbox("Variable X (Predictora)", num_cols, index=0)
+                with r_col2:
+                    y_reg = st.selectbox("Variable Y (Objetivo)", num_cols, index=min(1, len(num_cols)-1))
+                    
+                df_reg = df_filtered[[x_reg, y_reg]].dropna()
+                is_constant_x = (df_reg[x_reg].nunique() <= 1) or (df_reg[x_reg].std() == 0)
                 
-            df_reg = df_filtered[[x_reg, y_reg]].dropna()
-            is_constant_x = (df_reg[x_reg].nunique() <= 1) or (df_reg[x_reg].std() == 0)
-            
-            if is_constant_x:
-                fig_reg = px.scatter(
-                    df_reg, x=x_reg, y=y_reg,
-                    title=f"📈 Dispersión de {x_reg} vs {y_reg}",
-                    template=plotly_template,
-                    color_discrete_sequence=[palette_colors[0]]
-                )
-                fig_reg.update_layout(height=380, margin=dict(l=10, r=10, t=40, b=10))
-                st.plotly_chart(fig_reg, use_container_width=True)
-                st.warning(f"⚠️ No es posible calcular la regresión lineal porque todos los valores de la variable predictora '{x_reg}' son idénticos o no presentan variación.")
-            else:
-                try:
-                    slope, intercept, r_value, p_value, std_err = stats.linregress(df_reg[x_reg], df_reg[y_reg])
-                    r_sq = r_value**2
-                    
-                    fig_reg = px.scatter(
-                        df_reg, x=x_reg, y=y_reg, trendline="ols",
-                        title=f"📈 Modelo Regresión Lineal: R² = {r_sq:.4f} (p-val: {p_value:.3e})",
-                        template=plotly_template,
-                        color_discrete_sequence=[palette_colors[0]]
-                    )
-                    fig_reg.update_layout(height=380, margin=dict(l=10, r=10, t=40, b=10))
-                    st.plotly_chart(fig_reg, use_container_width=True)
-                    
-                    trend_dir = "creciente (positiva)" if slope > 0 else "decreciente (negativa)"
-                    st.markdown(f"""
-                    <div class="insight-card">
-                        <div class="insight-title">💡 Interpretación del Modelo de Regresión</div>
-                        <div class="insight-body">
-                            Existe una relación <b>{trend_dir}</b> entre <b>{x_reg}</b> e <b>{y_reg}</b> con ecuación: <b><code>{y_reg} = {slope:.4f} * {x_reg} + ({intercept:.4f})</code></b>.<br>
-                            El coeficiente de determinación <b>R² es {r_sq:.4f}</b> (el <b>{r_sq*100:.1f}% de la variabilidad en {y_reg} es explicado matemáticamente por {x_reg}</b>).
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                except Exception as e:
+                if is_constant_x:
                     fig_reg = px.scatter(
                         df_reg, x=x_reg, y=y_reg,
                         title=f"📈 Dispersión de {x_reg} vs {y_reg}",
@@ -940,8 +882,41 @@ with tab_full_dashboard:
                     )
                     fig_reg.update_layout(height=380, margin=dict(l=10, r=10, t=40, b=10))
                     st.plotly_chart(fig_reg, use_container_width=True)
-                    st.warning(f"⚠️ No se pudo calcular el ajuste lineal: {e}")
-            st.markdown('</div>', unsafe_allow_html=True)
+                    st.warning(f"⚠️ No es posible calcular la regresión lineal porque todos los valores de la variable predictora '{x_reg}' son idénticos o no presentan variación.")
+                else:
+                    try:
+                        slope, intercept, r_value, p_value, std_err = stats.linregress(df_reg[x_reg], df_reg[y_reg])
+                        r_sq = r_value**2
+                        
+                        fig_reg = px.scatter(
+                            df_reg, x=x_reg, y=y_reg, trendline="ols",
+                            title=f"📈 Modelo Regresión Lineal: R² = {r_sq:.4f} (p-val: {p_value:.3e})",
+                            template=plotly_template,
+                            color_discrete_sequence=[palette_colors[0]]
+                        )
+                        fig_reg.update_layout(height=380, margin=dict(l=10, r=10, t=40, b=10))
+                        st.plotly_chart(fig_reg, use_container_width=True)
+                        
+                        trend_dir = "creciente (positiva)" if slope > 0 else "decreciente (negativa)"
+                        st.markdown(f"""
+                        <div class="insight-card">
+                            <div class="insight-title">💡 Interpretación del Modelo de Regresión</div>
+                            <div class="insight-body">
+                                Existe una relación <b>{trend_dir}</b> entre <b>{x_reg}</b> e <b>{y_reg}</b> con ecuación: <b><code>{y_reg} = {slope:.4f} * {x_reg} + ({intercept:.4f})</code></b>.<br>
+                                El coeficiente de determinación <b>R² es {r_sq:.4f}</b> (el <b>{r_sq*100:.1f}% de la variabilidad en {y_reg} es explicado matemáticamente por {x_reg}</b>).
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    except Exception as e:
+                        fig_reg = px.scatter(
+                            df_reg, x=x_reg, y=y_reg,
+                            title=f"📈 Dispersión de {x_reg} vs {y_reg}",
+                            template=plotly_template,
+                            color_discrete_sequence=[palette_colors[0]]
+                        )
+                        fig_reg.update_layout(height=380, margin=dict(l=10, r=10, t=40, b=10))
+                        st.plotly_chart(fig_reg, use_container_width=True)
+                        st.warning(f"⚠️ No se pudo calcular el ajuste lineal: {e}")
 
     st.divider()
 
@@ -951,78 +926,75 @@ with tab_full_dashboard:
     st_col1, st_col2 = st.columns([6, 6])
     
     with st_col1:
-        st.markdown('<div class="ds-card">', unsafe_allow_html=True)
-        if len(num_cols) >= 2:
-            corr_matrix = df_filtered[num_cols].corr()
-            fig_corr = px.imshow(
-                corr_matrix, text_auto=".2f",
-                color_continuous_scale="Blues",
-                title="🔥 Matriz de Correlación de Pearson",
-                template=plotly_template
-            )
-            fig_corr.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
-            st.plotly_chart(fig_corr, use_container_width=True)
-            
-            try:
-                corr_abs = corr_matrix.abs()
-                corr_vals = corr_abs.to_numpy(copy=True)
-                np.fill_diagonal(corr_vals, 0)
-                corr_abs_df = pd.DataFrame(corr_vals, index=corr_abs.index, columns=corr_abs.columns)
-                max_pair = corr_abs_df.unstack().idxmax()
-                max_corr_val = corr_matrix.loc[max_pair[0], max_pair[1]]
+        with st.container(border=True):
+            if len(num_cols) >= 2:
+                corr_matrix = df_filtered[num_cols].corr()
+                fig_corr = px.imshow(
+                    corr_matrix, text_auto=".2f",
+                    color_continuous_scale="Blues",
+                    title="🔥 Matriz de Correlación de Pearson",
+                    template=plotly_template
+                )
+                fig_corr.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
+                st.plotly_chart(fig_corr, use_container_width=True)
                 
+                try:
+                    corr_abs = corr_matrix.abs()
+                    corr_vals = corr_abs.to_numpy(copy=True)
+                    np.fill_diagonal(corr_vals, 0)
+                    corr_abs_df = pd.DataFrame(corr_vals, index=corr_abs.index, columns=corr_abs.columns)
+                    max_pair = corr_abs_df.unstack().idxmax()
+                    max_corr_val = corr_matrix.loc[max_pair[0], max_pair[1]]
+                    
+                    st.markdown(f"""
+                    <div class="insight-card">
+                        <div class="insight-title">💡 Interpretación de Correlaciones</div>
+                        <div class="insight-body">
+                            La asociación más fuerte ocurre entre <b>{max_pair[0]}</b> y <b>{max_pair[1]}</b> ($r =$ <b>{max_corr_val:.2f}</b>).
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                except Exception:
+                    st.caption("💡 Matriz de correlación calculada exitosamente.")
+            else:
+                st.info("Se necesitan al menos 2 variables numéricas para calcular correlaciones.")
+        
+    with st_col2:
+        with st.container(border=True):
+            if num_cols:
+                selected_stat_col = st.selectbox("Seleccionar Variable para Violín & Densidad", num_cols)
+                
+                fig_violin = px.violin(
+                    df_filtered, y=selected_stat_col, box=True, points="all",
+                    title=f"🎻 Distribución Violín & Cuartiles de {selected_stat_col}",
+                    template=plotly_template,
+                    color_discrete_sequence=[palette_colors[1]]
+                )
+                fig_violin.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
+                st.plotly_chart(fig_violin, use_container_width=True)
+                
+                skew_val = df_filtered[selected_stat_col].skew()
+                skew_desc = "sesgada a la derecha" if skew_val > 0.5 else ("sesgada a la izquierda" if skew_val < -0.5 else "aproximadamente simétrica")
                 st.markdown(f"""
                 <div class="insight-card">
-                    <div class="insight-title">💡 Interpretación de Correlaciones</div>
+                    <div class="insight-title">💡 Forma y Densidad del Violín</div>
                     <div class="insight-body">
-                        La asociación más fuerte ocurre entre <b>{max_pair[0]}</b> y <b>{max_pair[1]}</b> ($r =$ <b>{max_corr_val:.2f}</b>).
+                        Muestra la densidad completa y los cuartiles de <b>{selected_stat_col}</b> con sesgo <b>{skew_desc}</b> ($Skewness = {skew_val:.2f}$).
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-            except Exception:
-                st.caption("💡 Matriz de correlación calculada exitosamente.")
-        else:
-            st.info("Se necesitan al menos 2 variables numéricas para calcular correlaciones.")
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-    with st_col2:
-        st.markdown('<div class="ds-card">', unsafe_allow_html=True)
-        if num_cols:
-            selected_stat_col = st.selectbox("Seleccionar Variable para Violín & Densidad", num_cols)
-            
-            fig_violin = px.violin(
-                df_filtered, y=selected_stat_col, box=True, points="all",
-                title=f"🎻 Distribución Violín & Cuartiles de {selected_stat_col}",
-                template=plotly_template,
-                color_discrete_sequence=[palette_colors[1]]
-            )
-            fig_violin.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
-            st.plotly_chart(fig_violin, use_container_width=True)
-            
-            skew_val = df_filtered[selected_stat_col].skew()
-            skew_desc = "sesgada a la derecha" if skew_val > 0.5 else ("sesgada a la izquierda" if skew_val < -0.5 else "aproximadamente simétrica")
-            st.markdown(f"""
-            <div class="insight-card">
-                <div class="insight-title">💡 Forma y Densidad del Violín</div>
-                <div class="insight-body">
-                    Muestra la densidad completa y los cuartiles de <b>{selected_stat_col}</b> con sesgo <b>{skew_desc}</b> ($Skewness = {skew_val:.2f}$).
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
 
     # Statistical Summary Table
     if num_cols:
-        st.markdown('<div class="ds-card">', unsafe_allow_html=True)
-        st.markdown("#### 📐 Tabla Completa de Métricas Estadísticas Descriptivas")
-        
-        stat_df = df_filtered[num_cols].describe().T
-        stat_df['Skewness'] = df_filtered[num_cols].skew()
-        stat_df['Kurtosis'] = df_filtered[num_cols].kurt()
-        stat_df['IQR'] = stat_df['75%'] - stat_df['25%']
-        
-        st.dataframe(stat_df[['count', 'mean', 'std', 'min', '50%', 'max', 'IQR', 'Skewness', 'Kurtosis']].style.format("{:.2f}"), use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown("#### 📐 Tabla Completa de Métricas Estadísticas Descriptivas")
+            
+            stat_df = df_filtered[num_cols].describe().T
+            stat_df['Skewness'] = df_filtered[num_cols].skew()
+            stat_df['Kurtosis'] = df_filtered[num_cols].kurt()
+            stat_df['IQR'] = stat_df['75%'] - stat_df['25%']
+            
+            st.dataframe(stat_df[['count', 'mean', 'std', 'min', '50%', 'max', 'IQR', 'Skewness', 'Kurtosis']].style.format("{:.2f}"), use_container_width=True)
 
 # =========================================================
 # TAB 2: DATA EXPLORER WITH LIVE SEARCH BAR
@@ -1030,40 +1002,38 @@ with tab_full_dashboard:
 with tab_explorer:
     st.markdown("### 📋 Explorador Interactivo de Datos con Buscador")
     
-    st.markdown('<div class="ds-card" style="min-height:auto;">', unsafe_allow_html=True)
-    
-    search_query = st.text_input("🔍 Buscar término en el dataset (Filtro en tiempo real):", "", placeholder="Escribe cualquier palabra o número, ej. 'Tres Arroyos', '2015', 'Buenos Aires'...")
-    
-    df_search_result = df_filtered.copy()
-    if search_query:
-        mask = np.column_stack([df_search_result[col].astype(str).str.contains(search_query, case=False, na=False) for col in df_search_result.columns])
-        df_search_result = df_search_result[mask.any(axis=1)]
-        st.caption(f"🔎 Se encontraron **{len(df_search_result):,} filas** que contienen el término '{search_query}'.")
-    
-    st.dataframe(df_search_result, use_container_width=True, height=420)
-    
-    e_col1, e_col2 = st.columns(2)
-    with e_col1:
-        csv_data = df_search_result.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            "📥 Descargar CSV Filtrado",
-            data=csv_data,
-            file_name="datalens_export.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
+    with st.container(border=True):
+        search_query = st.text_input("🔍 Buscar término en el dataset (Filtro en tiempo real):", "", placeholder="Escribe cualquier palabra o número, ej. 'Tres Arroyos', '2015', 'Buenos Aires'...")
         
-    with e_col2:
-        buf = io.BytesIO()
-        with pd.ExcelWriter(buf, engine='openpyxl') as writer:
-            df_search_result.to_excel(writer, index=False, sheet_name='DataLens_BI')
-        st.download_button(
-            "📊 Descargar Excel Filtrado",
-            data=buf.getvalue(),
-            file_name="datalens_export.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True
-        )
-    st.markdown('</div>', unsafe_allow_html=True)
+        df_search_result = df_filtered.copy()
+        if search_query:
+            mask = np.column_stack([df_search_result[col].astype(str).str.contains(search_query, case=False, na=False) for col in df_search_result.columns])
+            df_search_result = df_search_result[mask.any(axis=1)]
+            st.caption(f"🔎 Se encontraron **{len(df_search_result):,} filas** que contienen el término '{search_query}'.")
+        
+        st.dataframe(df_search_result, use_container_width=True, height=420)
+        
+        e_col1, e_col2 = st.columns(2)
+        with e_col1:
+            csv_data = df_search_result.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                "📥 Descargar CSV Filtrado",
+                data=csv_data,
+                file_name="datalens_export.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+            
+        with e_col2:
+            buf = io.BytesIO()
+            with pd.ExcelWriter(buf, engine='openpyxl') as writer:
+                df_search_result.to_excel(writer, index=False, sheet_name='DataLens_BI')
+            st.download_button(
+                "📊 Descargar Excel Filtrado",
+                data=buf.getvalue(),
+                file_name="datalens_export.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
 
 st.markdown("<br><hr><center><small>DataLens BI Dashboard • Potenciado con Streamlit, Plotly & Scikit-Learn</small></center>", unsafe_allow_html=True)
