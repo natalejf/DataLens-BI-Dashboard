@@ -409,14 +409,28 @@ function detectType(name, sample, allValues) {
     // Si la columna tiene solo 1 valor único en todas las filas (constante), se clasifica como constante/descartable
     if (unique <= 1) return 'constant';
 
-    // Evitar sumarizar años, IDs o códigos
-    if (nameLower === 'año' || nameLower === 'year' || nameLower.endsWith('_id') || nameLower === 'id' || nameLower.includes('código')) {
+    // Si es un ID o código numérico interno, clasificar como id_code para no priorizarlo sobre nombres legibles de ciudades
+    if (nameLower.endsWith('_id') || nameLower === 'id' || nameLower.includes('código') || nameLower.includes('codigo')) {
+        return 'id_code';
+    }
+
+    const isNumericSample = sample.filter(v => !isNaN(Number(v))).length / sample.length > 0.8;
+    const isDateSample = sample.filter(v => !isNaN(new Date(v).getTime()) && String(v).length > 5).length / sample.length > 0.7;
+
+    // Si la columna contiene palabras clave explícitas de dimensión de negocio (ej. departamento, ciudad, provincia, cliente, etc.)
+    const categoryKeywords = ['nombre', 'ciudad', 'departamento', 'provincia', 'localidad', 'municipio', 'distrito', 'zona', 'region', 'región', 'sucursal', 'pais', 'país', 'cliente', 'producto', 'categoria', 'categoría', 'marca', 'rubro', 'sector', 'vendedor', 'tipo', 'estado', 'campania', 'campaña'];
+    if (categoryKeywords.some(kw => nameLower.includes(kw)) && !isNumericSample) {
+        return 'categorical';
+    }
+
+    // Evitar sumarizar años
+    if (nameLower === 'año' || nameLower === 'year' || nameLower === 'anio') {
         return 'categorical';
     }
     
-    if (sample.filter(v => !isNaN(Number(v))).length / sample.length > 0.8) return 'numeric';
-    if (sample.filter(v => !isNaN(new Date(v).getTime()) && String(v).length > 5).length / sample.length > 0.7) return 'temporal';
-    if (unique < 50 || unique / allValues.length < 0.2) return 'categorical';
+    if (isNumericSample) return 'numeric';
+    if (isDateSample) return 'temporal';
+    if (unique < 2000 || unique / allValues.length < 0.5) return 'categorical';
     return 'text';
 }
 
@@ -493,7 +507,7 @@ function renderFieldsList() {
 let globalFilters = {};
 
 function renderSlicers() {
-    const slicerCols = columnAnalysis.filter(c => (c.type === 'categorical' || c.type === 'temporal') && c.uniqueCount > 0 && c.uniqueCount <= 100);
+    const slicerCols = columnAnalysis.filter(c => (c.type === 'categorical' || c.type === 'id_code' || c.type === 'temporal') && c.uniqueCount > 0 && c.uniqueCount <= 1000);
     if (slicerCols.length === 0) {
         safeSetHidden('globalFiltersContainer', true);
         return;
@@ -504,10 +518,10 @@ function renderSlicers() {
     
     slicerCols.forEach(col => {
         const uniqueVals = [...new Set(rawData.map(r => r[col.name]).filter(v => v !== '' && v != null))].sort();
-        if (uniqueVals.length > 50) return;
+        if (uniqueVals.length > 300) return;
         
         html += `<div class="slicer-group">
-            <label class="slicer-label">${escapeHtml(col.name)}</label>
+            <label class="slicer-label">${escapeHtml(col.cleanLabel || col.name)}</label>
             <select class="slicer-select" data-col="${escapeHtml(col.name)}" onchange="applyGlobalFilter(this.dataset.col, this.value)">
                 <option value="">(Todos)</option>
                 ${uniqueVals.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('')}
@@ -729,11 +743,18 @@ function generateChartConfigs() {
     const configs = [];
     const nums = columnAnalysis.filter(c => c.type === 'numeric').map(c => c.name);
     
-    const cats = columnAnalysis
-        .filter(c => c.type === 'categorical' && c.uniqueCount >= 2 && c.uniqueCount <= 100)
-        .sort((a, b) => a.uniqueCount - b.uniqueCount)
-        .map(c => c.name);
-        
+    // Categorías legibles (ciudades, departamentos, provincias, productos) e IDs
+    const catsObj = columnAnalysis
+        .filter(c => (c.type === 'categorical' || c.type === 'id_code') && c.uniqueCount >= 2 && c.uniqueCount <= 3000)
+        .sort((a, b) => {
+            // Dar máxima prioridad a columnas de nombres de categorías (ej. departamento_nombre, provincia_nombre, ciudad)
+            const aIsName = a.type === 'categorical' ? 0 : 1;
+            const bIsName = b.type === 'categorical' ? 0 : 1;
+            if (aIsName !== bIsName) return aIsName - bIsName;
+            return a.uniqueCount - b.uniqueCount;
+        });
+
+    const cats = catsObj.map(c => c.name);
     const dates = columnAnalysis.filter(c => c.type === 'temporal').map(c => c.name);
 
     // 1. Primary Trend / Time Series
