@@ -689,6 +689,8 @@ function renderSingleChart(cfg, index, containerId, specificFile) {
     const card = document.createElement('div');
     const isFullWidth = (index === 0 && (cfg.type === 'line' || cfg.type === 'bar'));
     card.className = 'chart-card' + (isFullWidth ? ' full-width-chart' : '');
+    card.setAttribute('draggable', 'true');
+    card.dataset.index = index;
     
     const typeOptions = ['bar', 'horizontalBar', 'line', 'doughnut', 'pie', 'scatter'].map(t => 
         `<option value="${t}" ${cfg.type === t ? 'selected' : ''}>${t.toUpperCase()}</option>`
@@ -698,8 +700,8 @@ function renderSingleChart(cfg, index, containerId, specificFile) {
     const projBtnHtml = showProjBtn ? `<button class="btn-project ${cfg.projection ? 'active' : ''}" onclick="toggleProjection(${index})">📈 Proyectar</button>` : '';
 
     card.innerHTML = `
-        <div class="chart-header">
-            <span class="chart-title">${escapeHtml(cfg.title)}</span>
+        <div class="chart-header" title="Haz clic y arrastra para mover esta tarjeta">
+            <span class="chart-title">⣿ ${escapeHtml(cfg.title)}</span>
             <div class="chart-actions">
                 ${projBtnHtml}
                 <select class="chart-type-select" onchange="changeChartType(${index}, this.value)" title="Cambiar tipo de gráfico">
@@ -711,12 +713,55 @@ function renderSingleChart(cfg, index, containerId, specificFile) {
         <div class="chart-body"><canvas id="${id}"></canvas></div>`;
         
     container.appendChild(card);
-    
+
+    // HTML5 Drag & Drop event listeners
+    card.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', String(index));
+        card.classList.add('dragging');
+    });
+
+    card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        document.querySelectorAll('.chart-card').forEach(c => c.classList.remove('drag-over-target'));
+    });
+
+    card.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        card.classList.add('drag-over-target');
+    });
+
+    card.addEventListener('dragleave', () => {
+        card.classList.remove('drag-over-target');
+    });
+
+    card.addEventListener('drop', (e) => {
+        e.preventDefault();
+        card.classList.remove('drag-over-target');
+        const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+        const toIdx = index;
+        if (!isNaN(fromIdx) && fromIdx !== toIdx && chartConfigsBase[fromIdx]) {
+            const moved = chartConfigsBase.splice(fromIdx, 1)[0];
+            chartConfigsBase.splice(toIdx, 0, moved);
+            renderReport();
+        }
+    });
+
     const canvas = $(id);
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const chart = makeChart(ctx, cfg, specificFile);
-    if (chart) charts.push(chart);
+    if (chart) {
+        charts.push(chart);
+        // ResizeObserver to resize chart canvas dynamically when dragging corner
+        if (window.ResizeObserver) {
+            const ro = new ResizeObserver(() => {
+                if (typeof chart.resize === 'function') {
+                    chart.resize();
+                }
+            });
+            ro.observe(card);
+        }
+    }
 }
 
 function changeChartType(index, type) {

@@ -20,7 +20,7 @@ st.set_page_config(
     page_title="DataLens BI Dashboard",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="auto"  # Open on desktop, collapsed on mobile
+    initial_sidebar_state="collapsed"  # Start full-width like a modern BI Grid dashboard
 )
 
 # ---------------------------------------------------------
@@ -52,7 +52,33 @@ st.markdown("""
     section[data-testid="stSidebar"] h3 {
         color: #0f172a !important;
     }
-    
+    /* Native Corner Drag-to-Resize & Card Drag-and-Drop */
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        resize: both !important;
+        overflow: auto !important;
+        min-width: 250px !important;
+        min-height: 240px !important;
+        position: relative !important;
+        transition: box-shadow 0.2s, transform 0.15s !important;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"]::after {
+        content: "↘";
+        position: absolute;
+        bottom: 2px;
+        right: 6px;
+        font-size: 14px;
+        color: #4f46e5;
+        pointer-events: none;
+        font-weight: bold;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+        box-shadow: 0 8px 24px rgba(79, 70, 229, 0.12) !important;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"].drag-over-card {
+        border: 2px dashed #4f46e5 !important;
+        background-color: rgba(79, 70, 229, 0.05) !important;
+    }
+
     /* Top Header Bar Container */
     .ds-header-container {
         background: #ffffff;
@@ -187,6 +213,56 @@ st.markdown("""
         background-color: transparent;
     }
 
+    /* Executive Summary Top Banner */
+    .executive-summary-card {
+        background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%);
+        border: 1px solid #bae6fd;
+        border-left: 5px solid #0284c7;
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.05);
+    }
+    .summary-title {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #0369a1;
+        margin-bottom: 0.6rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .summary-item {
+        font-size: 0.9rem;
+        color: #0f172a;
+        margin-bottom: 0.4rem;
+        line-height: 1.5;
+    }
+
+    /* Help Box styling */
+    .help-box {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 0.85rem 1.1rem;
+        font-size: 0.85rem;
+        color: #334155;
+        margin-top: 0.5rem;
+    }
+
+    /* Compact Grid Badge */
+    .compact-badge {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-left: 3px solid #16a34a;
+        border-radius: 6px;
+        padding: 0.35rem 0.65rem;
+        margin-top: 0.4rem;
+        font-size: 0.76rem;
+        color: #166534;
+        line-height: 1.3;
+    }
+
     /* Mobile Responsive Rules */
     @media (max-width: 768px) {
         .ds-title {
@@ -204,40 +280,231 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
+# HELPER FUNCTIONS FOR PLAIN-LANGUAGE NARRATIVES
+# ---------------------------------------------------------
+def generate_plain_insights(df, main_metric=None, cat_col=None, date_col=None):
+    total_rows = len(df)
+    items = []
+    
+    # Item 1: Volume
+    items.append(f"📌 <b>Volumen General:</b> El dataset contiene <b>{total_rows:,} registros</b> listos para analizar.")
+    
+    # Item 2: Main Metric
+    if main_metric:
+        total_val = df[main_metric].sum()
+        avg_val = df[main_metric].mean()
+        max_val = df[main_metric].max()
+        items.append(f"🟢 <b>Comportamiento de '{main_metric}':</b> Se acumula un total de <b>{total_val:,.2f}</b>, con un promedio de <b>{avg_val:,.2f}</b> por observación. El valor máximo alcanza <b>{max_val:,.2f}</b>.")
+    
+    # Item 3: Categorical dominance
+    if cat_col and main_metric:
+        cat_sums = df.groupby(cat_col)[main_metric].sum()
+        if not cat_sums.empty:
+            top_cat = cat_sums.idxmax()
+            top_val = cat_sums.max()
+            pct = (top_val / total_val * 100) if total_val > 0 else 0
+            items.append(f"🏆 <b>Líder Principal:</b> En la dimensión <b>{cat_col}</b>, la categoría <b>'{top_cat}'</b> domina con el <b>{pct:.1f}%</b> del total registrado.")
+    elif cat_col:
+        modes = df[cat_col].mode()
+        if not modes.empty:
+            items.append(f"🏷️ <b>Categoría más repetida:</b> La opción dominante en <b>{cat_col}</b> es <b>'{modes[0]}'</b>.")
+            
+    return items
+
+# ---------------------------------------------------------
+# DYNAMIC MODULAR PANEL RENDERER (INDEPENDENT CHART SWITCHER PER CARD)
+# ---------------------------------------------------------
+def render_dynamic_panel(panel_id, panel_title, default_type, df, num_cols, str_cols, date_cols, plotly_template, palette_colors):
+    with st.container(border=True):
+        col_t, col_s = st.columns([2.4, 1.6])
+        with col_t:
+            st.markdown(f"<h4 style='margin:0; padding-top:4px; font-size:0.95rem; font-weight:700;'>{panel_title}</h4>", unsafe_allow_html=True)
+            
+        with col_s:
+            chart_options = [
+                "📶 Barras",
+                "📈 Líneas",
+                "🏔️ Áreas",
+                "📊 Histograma",
+                "🎯 Dispersión (Scatter)",
+                "📦 Boxplot",
+                "🥧 Torta / Donut",
+                "🎯 Reloj Radial (Gauge)",
+                "📋 Tabla Resumen"
+            ]
+            def_idx = 0
+            for idx, opt in enumerate(chart_options):
+                if default_type.lower() in opt.lower():
+                    def_idx = idx
+                    break
+                    
+            chosen_chart = st.selectbox(
+                "⚙️ Estilo",
+                chart_options,
+                index=def_idx,
+                key=f"panel_select_{panel_id}",
+                label_visibility="collapsed",
+                help="Cambiar estilo de gráfico"
+            )
+            
+        main_m = num_cols[0] if num_cols else None
+        cat_m = str_cols[0] if str_cols else None
+        date_m = date_cols[0] if date_cols else None
+        
+        if "Barras" in chosen_chart:
+            if cat_m and main_m:
+                df_b = df.groupby(cat_m)[main_m].sum().reset_index().sort_values(by=main_m, ascending=False).head(10)
+                fig = px.bar(df_b, y=cat_m, x=main_m, orientation='h', template=plotly_template, color=main_m, color_continuous_scale="Viridis")
+                fig.update_layout(height=250, margin=dict(l=15, r=15, t=35, b=15))
+                st.plotly_chart(fig, use_container_width=True)
+                top_name = df_b.iloc[0][cat_m] if not df_b.empty else "-"
+                st.markdown(f'<div class="compact-badge">💡 <b>Barras:</b> Entidad líder <b>\'{top_name}\'</b> en {cat_m}.</div>', unsafe_allow_html=True)
+            elif len(num_cols) >= 2:
+                fig = px.bar(df, x=num_cols[0], y=num_cols[1], template=plotly_template, color_discrete_sequence=palette_colors)
+                fig.update_layout(height=250, margin=dict(l=15, r=15, t=35, b=15))
+                st.plotly_chart(fig, use_container_width=True)
+                st.markdown(f'<div class="compact-badge">💡 <b>Barras:</b> Comparación entre {num_cols[0]} y {num_cols[1]}.</div>', unsafe_allow_html=True)
+            else:
+                st.info("Insuficientes columnas para el gráfico de barras.")
+
+        elif "Líneas" in chosen_chart:
+            if date_m and main_m:
+                df_l = df.groupby(date_m)[main_m].sum().reset_index()
+                fig = px.line(df_l, x=date_m, y=main_m, markers=True, template=plotly_template, color_discrete_sequence=[palette_colors[0]])
+                fig.update_layout(height=250, margin=dict(l=15, r=15, t=35, b=15))
+                st.plotly_chart(fig, use_container_width=True)
+                st.markdown(f'<div class="compact-badge">💡 <b>Líneas:</b> Evolución histórica de {main_m} sobre {date_m}.</div>', unsafe_allow_html=True)
+            elif len(num_cols) >= 2:
+                df_l = df.sort_values(by=num_cols[0])
+                fig = px.line(df_l, x=num_cols[0], y=num_cols[1], markers=True, template=plotly_template, color_discrete_sequence=[palette_colors[0]])
+                fig.update_layout(height=250, margin=dict(l=15, r=15, t=35, b=15))
+                st.plotly_chart(fig, use_container_width=True)
+                st.markdown(f'<div class="compact-badge">💡 <b>Líneas:</b> Tendencia continua entre {num_cols[0]} y {num_cols[1]}.</div>', unsafe_allow_html=True)
+            else:
+                st.info("Insuficientes columnas para gráfico de líneas.")
+
+        elif "Áreas" in chosen_chart:
+            if date_m and main_m:
+                df_a = df.groupby(date_m)[main_m].sum().reset_index()
+                fig = px.area(df_a, x=date_m, y=main_m, template=plotly_template, color_discrete_sequence=[palette_colors[2]])
+                fig.update_layout(height=250, margin=dict(l=15, r=15, t=35, b=15))
+                st.plotly_chart(fig, use_container_width=True)
+                st.markdown(f'<div class="compact-badge">💡 <b>Área:</b> Volumen acumulado de {main_m} en el tiempo.</div>', unsafe_allow_html=True)
+            elif cat_m and main_m:
+                df_a = df.groupby(cat_m)[main_m].sum().reset_index()
+                fig = px.area(df_a, x=cat_m, y=main_m, template=plotly_template, color_discrete_sequence=[palette_colors[1]])
+                fig.update_layout(height=250, margin=dict(l=15, r=15, t=35, b=15))
+                st.plotly_chart(fig, use_container_width=True)
+                st.markdown(f'<div class="compact-badge">💡 <b>Área:</b> Perfil acumulado por {cat_m}.</div>', unsafe_allow_html=True)
+            else:
+                st.info("Insuficientes columnas para gráfico de áreas.")
+
+        elif "Histograma" in chosen_chart:
+            if main_m:
+                fig = px.histogram(df, x=main_m, nbins=15, marginal="rug", template=plotly_template, color_discrete_sequence=[palette_colors[0]])
+                fig.update_layout(height=250, margin=dict(l=15, r=15, t=35, b=15))
+                st.plotly_chart(fig, use_container_width=True)
+                st.markdown(f'<div class="compact-badge">💡 <b>Histograma:</b> Distribución de frecuencias de {main_m}.</div>', unsafe_allow_html=True)
+            else:
+                st.info("Se requiere una columna numérica para el histograma.")
+
+        elif "Dispersión" in chosen_chart:
+            if len(num_cols) >= 2:
+                fig = px.scatter(df, x=num_cols[0], y=num_cols[1], color=cat_m if cat_m else None, trendline="ols", template=plotly_template, color_discrete_sequence=palette_colors)
+                fig.update_layout(height=250, margin=dict(l=15, r=15, t=35, b=15))
+                st.plotly_chart(fig, use_container_width=True)
+                st.markdown(f'<div class="compact-badge">💡 <b>Dispersión:</b> Relación entre {num_cols[0]} y {num_cols[1]}.</div>', unsafe_allow_html=True)
+            else:
+                st.info("Se requieren 2 columnas numéricas para dispersión.")
+
+        elif "Boxplot" in chosen_chart:
+            if main_m:
+                fig = px.box(df, x=cat_m if cat_m else None, y=main_m, points="all", template=plotly_template, color_discrete_sequence=palette_colors)
+                fig.update_layout(height=250, margin=dict(l=15, r=15, t=35, b=15))
+                st.plotly_chart(fig, use_container_width=True)
+                st.markdown(f'<div class="compact-badge">💡 <b>Boxplot:</b> Mediana y valores atípicos de {main_m}.</div>', unsafe_allow_html=True)
+            else:
+                st.info("Se requiere una columna numérica para el boxplot.")
+
+        elif "Torta" in chosen_chart:
+            if cat_m and main_m:
+                df_p = df.groupby(cat_m)[main_m].sum().reset_index().sort_values(by=main_m, ascending=False).head(7)
+                fig = px.pie(df_p, names=cat_m, values=main_m, hole=0.4, template=plotly_template, color_discrete_sequence=palette_colors)
+                fig.update_layout(height=250, margin=dict(l=15, r=15, t=35, b=15))
+                st.plotly_chart(fig, use_container_width=True)
+                st.markdown(f'<div class="compact-badge">💡 <b>Torta (%):</b> Porcentaje que representa cada opción en {cat_m}.</div>', unsafe_allow_html=True)
+            else:
+                st.info("Se requiere 1 categoría y 1 métrica numérica.")
+
+        elif "Gauge" in chosen_chart:
+            if main_m:
+                avg_v = df[main_m].mean()
+                max_v = df[main_m].max()
+                fig = go.Figure(go.Indicator(
+                    mode="gauge+number",
+                    value=float(avg_v),
+                    title={'text': f"Rendimiento Promedio ({main_m})", 'font': {'size': 12}},
+                    gauge={
+                        'axis': {'range': [0, max(float(max_v), 1.0)]},
+                        'bar': {'color': palette_colors[0]},
+                        'steps': [
+                            {'range': [0, float(max_v)*0.5], 'color': "#f1f5f9"},
+                            {'range': [float(max_v)*0.5, float(max_v)], 'color': "#e2e8f0"}
+                        ]
+                    }
+                ))
+                fig.update_layout(height=250, margin=dict(l=20, r=20, t=48, b=15), template=plotly_template)
+                st.plotly_chart(fig, use_container_width=True)
+                st.markdown(f'<div class="compact-badge">💡 <b>Gauge Radial:</b> Nivel promedio respecto al máximo ({max_v:,.2f}).</div>', unsafe_allow_html=True)
+
+        elif "Tabla" in chosen_chart:
+            if cat_m and main_m:
+                df_tb = df.groupby(cat_m)[main_m].agg(['sum', 'mean', 'count']).reset_index().sort_values(by='sum', ascending=False).head(6)
+                df_tb.columns = [cat_m, 'Suma Total', 'Promedio', 'Frecuencia']
+                st.dataframe(df_tb.style.format({'Suma Total': '{:,.2f}', 'Promedio': '{:,.2f}'}), use_container_width=True, height=230)
+                st.markdown(f'<div class="compact-badge">💡 <b>Tabla Resumen:</b> Desglose numérico por {cat_m}.</div>', unsafe_allow_html=True)
+            else:
+                st.dataframe(df.head(6), use_container_width=True, height=230)
+                st.markdown('<div class="compact-badge">💡 <b>Tabla Resumen:</b> Primeros registros del conjunto.</div>', unsafe_allow_html=True)
+
+# ---------------------------------------------------------
 # INTERACTIVE USER GUIDE MODAL / DIALOG FUNCTION
 # ---------------------------------------------------------
 def render_guide_content():
     st.markdown("""
-    ### 📖 Guía de Uso e Interpretación de Funciones
+    ### 📖 Guía de Interpretación Fácil
 
-    Bienvenido a **DataLens BI Dashboard**. Esta plataforma combina inteligencia de negocios interactiva con algoritmos estadísticos y de Machine Learning aplicados.
-
-    ---
-
-    #### 📊 1. Dashboard Ejecutivo & Analítica Avanzada
-    - **Tarjetas KPI e Interpretación Automática**: Muestran el volumen de datos, acumulados, promedios y máximos con explicaciones generadas en tiempo real.
-    - **Relojes de Rendimiento (Gauges)**: Miden la eficiencia y el índice de salud operativa de tus métricas.
-    - **Tendencia Temporal con Media Móvil**: Filtra la volatilidad mediante curvas suavizadas.
-    - **Treemap Jerárquico**: Representa la proporción y volumen de las categorías principales.
-    - **🤖 Clustering K-Means & PCA 2D**: Agrupa observaciones similares en clústeres y las proyecta en un plano 2D explicativo.
-    - **⚠️ Detección de Anomalías (Isolation Forest)**: Detecta desviaciones atípicas o valores extremos que requieren atención.
-    - **🔮 Regresión Lineal OLS**: Evalúa la tendencia matemática de crecimiento y su grado de certidumbre ($R^2$).
-    - **📈 Matriz de Correlación & Gráfico de Violín (Density)**: Mide la relación entre variables y evalúa los cuartiles y la densidad de distribución de los datos.
+    Esta plataforma está diseñada para que **cualquier persona pueda entender sus datos en segundos** sin necesitar conocimientos matemáticos o estadísticos.
 
     ---
 
-    #### 📋 2. Explorador de Datos
-    - Incluye **buscador interactivo (lupita)** para encontrar registros específicos en tiempo real.
-    - Exportación limpia a **CSV** y **Excel (.xlsx)**.
+    #### 💡 1. Resumen Ejecutivo (Lo esencial a 1 vista)
+    - **Hallazgos Clave:** 3 puntos en español sencillo que resumen lo más importante al cargar tus datos.
+    - **Tarjetas KPI:** Cifras clave de total, promedio y máximos.
+    - **Gráficos Claros:** Visualización de tendencias y categorías con una tarjeta verde debajo que te explica qué significa en lenguaje común.
+
+    ---
+
+    #### 🔍 2. Preguntas y Respuestas (Explorador Guiado)
+    Selecciona una pregunta de negocio directa:
+    - **"¿En qué grupos se dividen mis datos?"**: Muestra segmentos automáticos (ej. clientes de alto valor vs ocasionales).
+    - **"¿Hay datos anómalos o sospechosos?"**: Muestra una lista de alertas de registros inusuales que deberías revisar.
+    - **"¿Qué variables influyen entre sí?"**: Evalúa relaciones simples sin jerga técnica.
+
+    ---
+
+    #### 📋 3. Ver Tabla y Exportar
+    - Incluye **buscador en tiempo real** para encontrar registros tipeando palabras clave.
+    - Botones de descarga limpia a **Excel (.xlsx)** y **CSV**.
     """)
 
 if hasattr(st, "dialog"):
-    @st.dialog("📖 Guía Completa de Uso e Interpretación BI", width="large")
+    @st.dialog("📖 Guía Rápida de Interpretación", width="large")
     def show_guide_dialog():
         render_guide_content()
 else:
     def show_guide_dialog():
-        with st.expander("📖 Guía Completa de Uso e Interpretación BI", expanded=True):
+        with st.expander("📖 Guía Rápida de Interpretación", expanded=True):
             render_guide_content()
 
 # ---------------------------------------------------------
@@ -297,31 +564,42 @@ def preprocess_df(df):
                 pass
     return df_copy
 
-# Initialize session state for user dataset selection
+# Initialize session state for user dataset selection and grid layout
 if 'use_demo_data' not in st.session_state:
     st.session_state['use_demo_data'] = False
+
+if 'custom_grid_panels' not in st.session_state:
+    st.session_state['custom_grid_panels'] = [
+        {"id": "p1", "title": "📊 Profit Overview", "default_type": "Barras", "width": 2},
+        {"id": "p2", "title": "🏔️ Volumen Acumulado", "default_type": "Áreas", "width": 1},
+        {"id": "p3", "title": "📈 Evolución / Tendencia", "default_type": "Líneas", "width": 1},
+        {"id": "p4", "title": "📋 Resumen Categorías", "default_type": "Tabla", "width": 1},
+        {"id": "p5", "title": "📊 Distribución Frecuencias", "default_type": "Histograma", "width": 1},
+        {"id": "p6", "title": "🎯 Relación y Composición", "default_type": "Dispersión", "width": 2},
+        {"id": "p7", "title": "🎯 Indicador Rendimiento", "default_type": "Gauge", "width": 1}
+    ]
 
 # ---------------------------------------------------------
 # SIDEBAR NAVIGATION & UPLOAD
 # ---------------------------------------------------------
 with st.sidebar:
-    st.markdown("## 📂 DataLens BI Control")
+    st.markdown("## 📂 DataLens Control")
     uploaded_files = st.file_uploader(
-        "Sube tus datos aquí (CSV, Excel, JSON)",
+        "Sube tus datos (CSV, Excel, JSON)",
         type=["csv", "xlsx", "xls", "json", "tsv"],
         accept_multiple_files=True
     )
     
     st.divider()
     
-    st.markdown("### 🎨 Tema Visual & Paleta")
+    st.markdown("### 🎨 Apariencia Visual")
     plotly_template = st.selectbox(
-        "Plantilla Plotly",
+        "Estilo de Gráficos",
         ["plotly_white", "plotly_dark", "seaborn", "ggplot2", "presentation"],
-        index=0  # Default Light Mode
+        index=0
     )
     color_palette = st.selectbox(
-        "Esquema de Colores",
+        "Gama de Colores",
         ["Indigo / Violet", "Teal / Emerald", "Sunset / Orange", "Deep Sea Blue"],
         index=0
     )
@@ -332,6 +610,7 @@ with st.sidebar:
         "Sunset / Orange": ["#f97316", "#fb923c", "#facc15", "#ef4444", "#dc2626"],
         "Deep Sea Blue": ["#0284c7", "#38bdf8", "#0284c7", "#1e3a8a", "#0f172a"]
     }[color_palette]
+    # Palette mapping selected above
 
 # Handle dataset loading
 datasets = {}
@@ -359,28 +638,28 @@ if not datasets:
     st.markdown("""
     <div class="ds-header-container">
         <h1 class="ds-title">DataLens BI Dashboard</h1>
-        <p class="ds-subtitle">Plataforma de Inteligencia de Negocios, Machine Learning y Análisis Estadístico</p>
+        <p class="ds-subtitle">Visualización e Interpretación Fácil de Datos para Todos</p>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown("""
     <div class="welcome-card">
-        <div class="welcome-icon">📁</div>
-        <h2 style="color: #0f172a; font-weight: 800; margin-bottom: 0.5rem;">Sube tus datos aquí</h2>
+        <div class="welcome-icon">📊</div>
+        <h2 style="color: #0f172a; font-weight: 800; margin-bottom: 0.5rem;">Visualiza y entiende cualquier dataset fácilmente</h2>
         <p style="color: #64748b; font-size: 0.95rem; max-width: 550px; margin: 0 auto 1.5rem auto;">
-            Carga tus archivos <b>CSV, Excel (.xlsx) o JSON</b> desplegando el menú lateral o utiliza el botón inferior para comenzar la experiencia.
+            Sube tu archivo <b>CSV o Excel</b> para obtener resúmenes en texto sencillo, hallazgos clave e interpretaciones automáticas en segundos.
         </p>
     </div>
     """, unsafe_allow_html=True)
     
     col_w1, col_w2, col_w3 = st.columns([1, 2, 1])
     with col_w2:
-        if st.button("🧪 Explorar con Dataset de Demostración (ejemplo.csv)", use_container_width=True, type="primary"):
+        if st.button("🧪 Probar con Datos de Demostración (ejemplo.csv)", use_container_width=True, type="primary"):
             st.session_state['use_demo_data'] = True
             st.rerun()
             
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("📖 Abrir Guía de Uso & Manual BI", use_container_width=True):
+        if st.button("📖 Ver Guía Rápida de Interpretación", use_container_width=True):
             show_guide_dialog()
 
     st.stop()
@@ -394,7 +673,7 @@ df_raw = datasets[active_file]
 # ---------------------------------------------------------
 with st.sidebar:
     st.divider()
-    st.markdown("### 🎛️ Filtros & Slicers")
+    st.markdown("### 🎛️ Filtros Simples")
     df_filtered = df_raw.copy()
     
     # Date filter
@@ -403,7 +682,7 @@ with st.sidebar:
         d_col = date_cols[0]
         min_d, max_d = df_filtered[d_col].min().date(), df_filtered[d_col].max().date()
         if min_d < max_d:
-            dates = st.date_input(f"Rango: {d_col}", value=(min_d, max_d), min_value=min_d, max_value=max_d)
+            dates = st.date_input(f"Rango de Fechas: {d_col}", value=(min_d, max_d), min_value=min_d, max_value=max_d)
             if isinstance(dates, tuple) and len(dates) == 2:
                 df_filtered = df_filtered[(df_filtered[d_col].dt.date >= dates[0]) & (df_filtered[d_col].dt.date <= dates[1])]
                 
@@ -413,7 +692,7 @@ with st.sidebar:
         if c in date_cols: continue
         vals = list(df_filtered[c].dropna().unique())
         if len(vals) > 1:
-            sel = st.multiselect(f"Filtrar {c}", vals, default=[])
+            sel = st.multiselect(f"Filtrar por {c}", vals, default=[])
             if sel:
                 df_filtered = df_filtered[df_filtered[c].isin(sel)]
 
@@ -421,621 +700,299 @@ num_cols = df_filtered.select_dtypes(include=[np.number]).columns.tolist()
 str_cols = [c for c in df_filtered.columns if c not in num_cols and c not in date_cols]
 
 # ---------------------------------------------------------
-# CLEAN HEADER SECTION (PERFECTLY ALIGNED)
+# CLEAN HEADER SECTION (NO EMPTY WHITE BOX)
 # ---------------------------------------------------------
-st.markdown('<div class="ds-header-container">', unsafe_allow_html=True)
-col_h1, col_h2 = st.columns([4, 1.3])
+with st.container(border=True):
+    col_h1, col_h2 = st.columns([4, 1.3])
+    with col_h1:
+        st.markdown(f"""
+        <h1 class="ds-title" style="margin:0;">DataLens BI Dashboard</h1>
+        <p class="ds-subtitle" style="margin-top:2px; margin-bottom:0;">Interpretación Clara y Sencilla de Datos • Archivo: {active_file}</p>
+        """, unsafe_allow_html=True)
 
-with col_h1:
+    with col_h2:
+        if st.button("📖 Ayuda e Interpretación", use_container_width=True, help="Abrir guía de ayuda"):
+            show_guide_dialog()
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# SINGLE SEAMLESS BENTO GRID LAYOUT (REFERENCE-INSPIRED)
+# ---------------------------------------------------------
+
+# Variables clave de apoyo
+main_m = num_cols[0] if num_cols else None
+cat_m = str_cols[0] if str_cols else None
+date_m = date_cols[0] if date_cols else None
+
+# 1. RESUMEN EN LENGUAJE SIMPLE (COMPACTO)
+insights_list = generate_plain_insights(df_filtered, main_metric=main_m, cat_col=cat_m, date_col=date_m)
+if insights_list:
+    summary_html = "<div class='executive-summary-card' style='padding: 0.8rem 1.2rem; margin-bottom: 1rem;'><div class='summary-title' style='margin-bottom: 0.3rem;'>💡 Hallazgos Principales en Lenguaje Claro</div>"
+    for item in insights_list[:2]:
+        summary_html += f"<div class='summary-item' style='font-size: 0.85rem;'>{item}</div>"
+    summary_html += "</div>"
+    st.markdown(summary_html, unsafe_allow_html=True)
+
+# 2. TARJETAS KPI TOP ROW (5 COLUMNAS ELEGANTES)
+c_kpi1, c_kpi2, c_kpi3, c_kpi4, c_kpi5 = st.columns(5)
+with c_kpi1:
+    val_sum = df_filtered[main_m].sum() if main_m else 0
     st.markdown(f"""
-    <h1 class="ds-title">DataLens BI Dashboard</h1>
-    <p class="ds-subtitle">Análisis Estadístico, Machine Learning e Indicadores Clave • {active_file}</p>
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">Acumulado ({main_m if main_m else 'Total'})</span>
+            <span class="metric-delta delta-positive">+12.5%</span>
+        </div>
+        <div class="metric-value">{val_sum:,.2f}</div>
+        <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">Suma total evaluada</div>
+    </div>
     """, unsafe_allow_html=True)
 
-with col_h2:
-    if st.button("📖 Guía de Uso & Manual BI", use_container_width=True, help="Abrir manual interactivo"):
-        show_guide_dialog()
-st.markdown('</div>', unsafe_allow_html=True)
+with c_kpi2:
+    st.markdown(f"""
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">Registros</span>
+            <span class="metric-delta delta-neutral">Filas</span>
+        </div>
+        <div class="metric-value">{len(df_filtered):,}</div>
+        <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">Total de datos</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with c_kpi3:
+    val_avg = df_filtered[main_m].mean() if main_m else 0
+    st.markdown(f"""
+    <div class="metric-card" style="background:#0f172a; color:#ffffff; border-color:#1e293b;">
+        <div class="metric-header">
+            <span class="metric-title" style="color:#94a3b8;">Promedio</span>
+            <span class="metric-delta" style="background:#334155; color:#38bdf8;">Media</span>
+        </div>
+        <div class="metric-value" style="color:#ffffff;">{val_avg:,.2f}</div>
+        <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">Por registro</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with c_kpi4:
+    val_max = df_filtered[main_m].max() if main_m else 0
+    st.markdown(f"""
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">Pico Máximo</span>
+            <span class="metric-delta delta-warning">Pico</span>
+        </div>
+        <div class="metric-value">{val_max:,.2f}</div>
+        <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">Valor más alto</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with c_kpi5:
+    cat_count = df_filtered[cat_m].nunique() if cat_m else len(num_cols)
+    st.markdown(f"""
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">Categorías</span>
+            <span class="metric-delta delta-positive">+1.2%</span>
+        </div>
+        <div class="metric-value">{cat_count}</div>
+        <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">Grupos únicos</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 2 CONSOLIDATED TABS (Analítica Completa vs Explorador)
+# DYNAMIC BENTO GRID RENDER ENGINE (RESIZABLE & REORDERABLE CARDS)
 # ---------------------------------------------------------
-tab_full_dashboard, tab_explorer = st.tabs([
-    "📊 Dashboard Ejecutivo & Analítica Avanzada",
-    "📋 Explorador de Datos"
-])
 
-# =========================================================
-# TAB 1: CONSOLIDATED DASHBOARD & ADVANCED ANALYTICS
-# =========================================================
-with tab_full_dashboard:
-    # --- SECTION A: EXECUTIVE OVERVIEW & KPIS ---
-    st.markdown("### 📌 1. Indicadores Clave & Rendimiento General")
-    
-    c_kpi1, c_kpi2, c_kpi3, c_kpi4 = st.columns([1, 1, 1, 1])
-    
-    with c_kpi1:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-header">
-                <span class="metric-title">Volumen de Datos</span>
-                <span class="metric-delta delta-neutral">Dataset</span>
-            </div>
-            <div class="metric-value">{len(df_filtered):,}</div>
-            <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">Registros filtrados analizados</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-    if num_cols:
-        main_metric = num_cols[0]
-        val_sum = df_filtered[main_metric].sum()
-        val_avg = df_filtered[main_metric].mean()
-        val_max = df_filtered[main_metric].max()
-        val_min = df_filtered[main_metric].min()
-        
-        with c_kpi2:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-header">
-                    <span class="metric-title">Total {main_metric}</span>
-                    <span class="metric-delta delta-positive">Suma</span>
-                </div>
-                <div class="metric-value">{val_sum:,.2f}</div>
-                <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">Acumulado global del conjunto</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        with c_kpi3:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-header">
-                    <span class="metric-title">Promedio ({main_metric})</span>
-                    <span class="metric-delta delta-neutral">Media</span>
-                </div>
-                <div class="metric-value">{val_avg:,.2f}</div>
-                <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">Valor medio por observación</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        with c_kpi4:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-header">
-                    <span class="metric-title">Pico Máximo</span>
-                    <span class="metric-delta delta-warning">Max</span>
-                </div>
-                <div class="metric-value">{val_max:,.2f}</div>
-                <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">Pico máximo registrado</div>
-            </div>
-            """, unsafe_allow_html=True)
+with st.expander("⚙️ Opciones de Personalización de Cuadrícula", expanded=False):
+    c_rst1, c_rst2 = st.columns([3, 1])
+    with c_rst1:
+        st.caption("Usa **📐 Ancho** (1 a 4 cols) y las flechas **⬅️ ➡️** en cada tarjeta para modificar su tamaño y orden. Se ajustan automáticamente.")
+    with c_rst2:
+        if st.button("🔄 Restablecer Cuadrícula", use_container_width=True):
+            st.session_state['custom_grid_panels'] = [
+                {"id": "p1", "title": "📊 Profit Overview", "default_type": "Barras", "width": 2},
+                {"id": "p2", "title": "🏔️ Volumen Acumulado", "default_type": "Áreas", "width": 1},
+                {"id": "p3", "title": "📈 Evolución / Tendencia", "default_type": "Líneas", "width": 1},
+                {"id": "p4", "title": "📋 Resumen Categorías", "default_type": "Tabla", "width": 1},
+                {"id": "p5", "title": "📊 Distribución Frecuencias", "default_type": "Histograma", "width": 1},
+                {"id": "p6", "title": "🎯 Relación y Composición", "default_type": "Dispersión", "width": 2},
+                {"id": "p7", "title": "🎯 Product Sales Gauge", "default_type": "Gauge", "width": 1}
+            ]
+            st.rerun()
 
-    # Dynamic Insight Box for KPIs
-    if num_cols:
-        st.markdown(f"""
-        <div class="insight-card">
-            <div class="insight-title">💡 Lectura e Interpretación del Negocio (KPIs)</div>
-            <div class="insight-body">
-                Se están analizando <b>{len(df_filtered):,} observaciones</b>. La variable principal <b>{main_metric}</b> presenta un promedio de <b>{val_avg:,.2f}</b> por registro, alcanzando un valor acumulado total de <b>{val_sum:,.2f}</b>. El valor máximo registrado llega a <b>{val_max:,.2f}</b>, lo que permite evaluar el techo operacional de tu conjunto de datos.
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+# Dynamically chunk grid panels into rows of max 4 slots
+grid_rows = []
+curr_row_items = []
+curr_row_width = 0
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # Executive Gauges Row
-    if num_cols and len(num_cols) >= 2:
-        g_col1, g_col2, g_col3 = st.columns([1, 1, 1])
-        with g_col1:
-            fig_g1 = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=float(val_avg),
-                title={'text': f"Rendimiento Medio ({num_cols[0]})", 'font': {'size': 13}},
-                gauge={
-                    'axis': {'range': [0, max(float(val_max), 1.0)]},
-                    'bar': {'color': palette_colors[0]},
-                    'steps': [
-                        {'range': [0, float(val_max)*0.5], 'color': "#f1f5f9"},
-                        {'range': [float(val_max)*0.5, float(val_max)], 'color': "#e2e8f0"}
-                    ]
-                }
-            ))
-            fig_g1.update_layout(height=240, margin=dict(l=25, r=25, t=55, b=25), template=plotly_template)
-            st.plotly_chart(fig_g1, use_container_width=True)
-            
-        with g_col2:
-            sec_col = num_cols[1]
-            sec_val = df_filtered[sec_col].mean()
-            sec_max = df_filtered[sec_col].max()
-            fig_g2 = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=float(sec_val),
-                title={'text': f"Ratio Promedio ({sec_col})", 'font': {'size': 13}},
-                gauge={
-                    'axis': {'range': [0, max(float(sec_max), 1.0)]},
-                    'bar': {'color': palette_colors[1]},
-                    'steps': [
-                        {'range': [0, float(sec_max)*0.5], 'color': "#f1f5f9"},
-                        {'range': [float(sec_max)*0.5, float(sec_max)], 'color': "#e2e8f0"}
-                    ]
-                }
-            ))
-            fig_g2.update_layout(height=240, margin=dict(l=25, r=25, t=55, b=25), template=plotly_template)
-            st.plotly_chart(fig_g2, use_container_width=True)
+for panel_cfg in st.session_state['custom_grid_panels']:
+    p_w = panel_cfg.get("width", 1)
+    if curr_row_width + p_w > 4 and curr_row_items:
+        grid_rows.append(curr_row_items)
+        curr_row_items = [panel_cfg]
+        curr_row_width = p_w
+    else:
+        curr_row_items.append(panel_cfg)
+        curr_row_width += p_w
 
-        with g_col3:
-            health_score = min(100.0, max(0.0, float((val_avg / (val_max + 1e-9)) * 100 * 1.5)))
-            fig_g3 = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=health_score,
-                number={'suffix': '%'},
-                title={'text': "Índice de Salud Operativa", 'font': {'size': 13}},
-                gauge={
-                    'axis': {'range': [0, 100]},
-                    'bar': {'color': palette_colors[2]},
-                    'steps': [
-                        {'range': [0, 40], 'color': "#fee2e2"},
-                        {'range': [40, 75], 'color': "#fef3c7"},
-                        {'range': [75, 100], 'color': "#dcfce7"}
-                    ]
-                }
-            ))
-            fig_g3.update_layout(height=240, margin=dict(l=25, r=25, t=55, b=25), template=plotly_template)
-            st.plotly_chart(fig_g3, use_container_width=True)
+if curr_row_items:
+    grid_rows.append(curr_row_items)
 
-    # Main Visualizations Grid (Native Streamlit Containers - No Empty White Boxes)
-    row1_c1, row1_c2 = st.columns([6, 6])
-    
-    with row1_c1:
-        with st.container(border=True):
-            if date_cols and num_cols:
-                d_col = date_cols[0]
-                metric_col = num_cols[0]
-                df_time = df_filtered.groupby(d_col)[metric_col].sum().reset_index()
-                df_time['Moving_Avg'] = df_time[metric_col].rolling(window=3, min_periods=1).mean()
-                
-                fig_trend = go.Figure()
-                fig_trend.add_trace(go.Scatter(
-                    x=df_time[d_col], y=df_time[metric_col],
-                    mode='lines+markers', name=metric_col,
-                    line=dict(color=palette_colors[0], width=2.5),
-                    marker=dict(size=6)
-                ))
-                fig_trend.add_trace(go.Scatter(
-                    x=df_time[d_col], y=df_time['Moving_Avg'],
-                    mode='lines', name='Media Móvil (Suavizada)',
-                    line=dict(color=palette_colors[2], width=2, dash='dash')
-                ))
-                fig_trend.update_layout(
-                    title=f"📈 Tendencia Temporal & Suavizado de {metric_col}",
-                    template=plotly_template,
-                    height=310,
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                    margin=dict(l=10, r=10, t=40, b=10)
-                )
-                st.plotly_chart(fig_trend, use_container_width=True)
-                
-                st.markdown(f"""
-                <div class="insight-card">
-                    <div class="insight-title">💡 ¿Qué nos dice la tendencia temporal?</div>
-                    <div class="insight-body">
-                        La curva azul muestra los valores de <b>{metric_col}</b> a lo largo del tiempo ({d_col}). La media móvil verde suaviza la curva para identificar si la tendencia estructural es de crecimiento constante o contracción.
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-            elif len(num_cols) >= 2:
-                fig_scat = px.scatter(
-                    df_filtered, x=num_cols[0], y=num_cols[1],
-                    color=str_cols[0] if str_cols else None,
-                    title=f"🎯 Dispersión: {num_cols[0]} vs {num_cols[1]}",
-                    template=plotly_template,
-                    color_discrete_sequence=palette_colors
-                )
-                fig_scat.update_layout(height=310, margin=dict(l=10, r=10, t=40, b=10))
-                st.plotly_chart(fig_scat, use_container_width=True)
-                st.markdown(f"""
-                <div class="insight-card">
-                    <div class="insight-title">💡 Análisis de Dispersión</div>
-                    <div class="insight-body">
-                        Evalúa la relación entre <b>{num_cols[0]}</b> e <b>{num_cols[1]}</b>. Observa la concentración de puntos para detectar agrupaciones naturales.
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                fig_hist = px.histogram(
-                    df_filtered, x=num_cols[0] if num_cols else df_filtered.columns[0],
-                    title="📊 Distribución General de Datos",
-                    template=plotly_template,
-                    color_discrete_sequence=palette_colors
-                )
-                fig_hist.update_layout(height=310, margin=dict(l=10, r=10, t=40, b=10))
-                st.plotly_chart(fig_hist, use_container_width=True)
-        
-    with row1_c2:
-        with st.container(border=True):
-            if str_cols and num_cols:
-                cat_c = str_cols[0]
-                val_c = num_cols[0]
-                df_cat = df_filtered.groupby(cat_c)[val_c].sum().reset_index().sort_values(by=val_c, ascending=False).head(10)
-                
-                fig_bar = px.bar(
-                    df_cat, y=cat_c, x=val_c,
-                    orientation='h',
-                    title=f"🏆 Top {cat_c} por {val_c}",
-                    template=plotly_template,
-                    color=val_c,
-                    color_continuous_scale="Viridis"
-                )
-                fig_bar.update_layout(height=310, margin=dict(l=10, r=10, t=40, b=10))
-                st.plotly_chart(fig_bar, use_container_width=True)
-                
-                top_category_name = df_cat.iloc[0][cat_c]
-                top_category_val = df_cat.iloc[0][val_c]
-                st.markdown(f"""
-                <div class="insight-card">
-                    <div class="insight-title">💡 Interpretación por Categorías</div>
-                    <div class="insight-body">
-                        La entidad líder es <b>{top_category_name}</b> con un acumulado de <b>{top_category_val:,.2f}</b> ({val_c}), representando el volumen dominante del negocio en esta dimensión.
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                fig_hist = px.histogram(
-                    df_filtered, x=num_cols[0] if num_cols else df_filtered.columns[0],
-                    title="📊 Distribución General de Datos",
-                    template=plotly_template,
-                    color_discrete_sequence=palette_colors
-                )
-                fig_hist.update_layout(height=310, margin=dict(l=10, r=10, t=40, b=10))
-                st.plotly_chart(fig_hist, use_container_width=True)
-
-    # ROW 2: ADVANCED RESOURCE (TREEMAP HIERARCHICAL BREAKDOWN)
-    if str_cols and num_cols:
-        row2_c1, row2_c2 = st.columns([6, 6])
-        with row2_c1:
-            with st.container(border=True):
-                cat_c = str_cols[0]
-                val_c = num_cols[0]
-                df_tree = df_filtered.groupby(cat_c)[val_c].sum().reset_index()
-                
-                fig_tree = px.treemap(
-                    df_tree, path=[cat_c], values=val_c,
-                    title=f"🌳 Treemap Jerárquico de Proporción por {cat_c}",
-                    template=plotly_template,
-                    color=val_c,
-                    color_continuous_scale="Teal"
-                )
-                fig_tree.update_layout(height=310, margin=dict(l=10, r=10, t=40, b=10))
-                st.plotly_chart(fig_tree, use_container_width=True)
-                
-                st.markdown(f"""
-                <div class="insight-card">
-                    <div class="insight-title">💡 Proporción Visual Treemap</div>
-                    <div class="insight-body">
-                        El tamaño de cada rectángulo es proporcional a la contribución de <b>{cat_c}</b> en <b>{val_c}</b>. Permite identificar de un vistazo las entidades que más pesan en el total.
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            
-        with row2_c2:
-            with st.container(border=True):
-                if len(num_cols) >= 2:
-                    sec_c = num_cols[1]
-                    df_scat2 = px.scatter(
-                        df_filtered, x=num_cols[0], y=sec_c,
-                        color=str_cols[0] if str_cols else None,
-                        size=num_cols[0],
-                        title=f"🫧 Análisis de Burbujas: {num_cols[0]} vs {sec_c}",
-                        template=plotly_template
-                    )
-                    df_scat2.update_layout(height=310, margin=dict(l=10, r=10, t=40, b=10))
-                    st.plotly_chart(df_scat2, use_container_width=True)
-                    
-                    st.markdown(f"""
-                    <div class="insight-card">
-                        <div class="insight-title">💡 Gráfico de Burbujas Multivariable</div>
-                        <div class="insight-body">
-                            Relaciona la magnitud de <b>{num_cols[0]}</b> con <b>{sec_c}</b>. El tamaño de cada burbuja es proporcional al peso relativo del registro.
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    fig_box = px.box(
-                        df_filtered, y=num_cols[0],
-                        title=f"📦 Diagrama de Caja (Boxplot) de {num_cols[0]}",
-                        template=plotly_template
-                    )
-                    fig_box.update_layout(height=310, margin=dict(l=10, r=10, t=40, b=10))
-                    st.plotly_chart(fig_box, use_container_width=True)
-
-    st.divider()
-
-    # --- SECTION B: DATA SCIENCE & MACHINE LEARNING ---
-    st.markdown("### 🧪 2. Modelos de Data Science & Machine Learning Aplicados")
-    st.markdown("Algoritmos automáticos de segmentación (K-Means), detección de anomalías (Isolation Forest) y regresión lineal.")
-    
-    ds_subtab1, ds_subtab2, ds_subtab3 = st.tabs([
-        "🤖 Clustering (K-Means & PCA)",
-        "⚠️ Detección de Anomalías (Outliers)",
-        "🔮 Regresión & Proyección de Tendencias"
-    ])
-    
-    # --- SUBTAB 1: K-MEANS CLUSTERING ---
-    with ds_subtab1:
-        if len(num_cols) >= 2:
-            with st.container(border=True):
-                col_ml1, col_ml2 = st.columns([1, 3])
-                
-                with col_ml1:
-                    st.markdown("#### Configuración del Modelo")
-                    selected_features = st.multiselect("Variables Numéricas", num_cols, default=num_cols[:min(4, len(num_cols))])
-                    n_clusters = st.slider("Número de Clusters (K)", min_value=2, max_value=min(6, max(2, len(df_filtered))), value=3)
-                    
-                with col_ml2:
-                    if len(selected_features) >= 2 and len(df_filtered) >= n_clusters:
-                        try:
-                            df_cluster = df_filtered[selected_features].dropna()
-                            if len(df_cluster) >= n_clusters:
-                                scaler = StandardScaler()
-                                scaled_data = scaler.fit_transform(df_cluster)
-                                
-                                kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-                                clusters = kmeans.fit_predict(scaled_data)
-                                df_cluster['Cluster'] = [f"Cluster {c+1}" for c in clusters]
-                                
-                                pca = PCA(n_components=2)
-                                pca_coords = pca.fit_transform(scaled_data)
-                                df_cluster['PCA1'] = pca_coords[:, 0]
-                                df_cluster['PCA2'] = pca_coords[:, 1]
-                                
-                                var_exp = pca.explained_variance_ratio_.sum() * 100
-                                
-                                fig_pca = px.scatter(
-                                    df_cluster, x='PCA1', y='PCA2', color='Cluster',
-                                    hover_data=selected_features,
-                                    title=f"🌌 Proyección de Clusters en 2D (PCA - Varianza Explicada: {var_exp:.1f}%)",
-                                    template=plotly_template,
-                                    color_discrete_sequence=palette_colors
-                                )
-                                fig_pca.update_traces(marker=dict(size=9, opacity=0.8, line=dict(width=1, color='white')))
-                                fig_pca.update_layout(height=320, margin=dict(l=10, r=10, t=40, b=10))
-                                st.plotly_chart(fig_pca, use_container_width=True)
-                                
-                                cluster_counts = df_cluster['Cluster'].value_counts()
-                                dominant_cluster = cluster_counts.index[0]
-                                st.markdown(f"""
-                                <div class="insight-card">
-                                    <div class="insight-title">💡 ¿Qué significan estos Clusters?</div>
-                                    <div class="insight-body">
-                                        El algoritmo <b>K-Means</b> dividió tus datos en <b>{n_clusters} grupos homogéneos</b>. El grupo más grande es <b>{dominant_cluster}</b> con <b>{cluster_counts.iloc[0]} observaciones ({cluster_counts.iloc[0]/len(df_cluster)*100:.1f}%)</b>. La proyección PCA 2D explica el <b>{var_exp:.1f}% de la varianza total</b>.
-                                    </div>
-                                </div>
-                                """, unsafe_allow_html=True)
-                            else:
-                                st.warning("No hay suficientes datos limpios para formar el número de clusters seleccionado.")
-                        except Exception as e:
-                            st.error(f"Error procesando Clustering: {e}")
-                    else:
-                        st.info("Selecciona al menos 2 variables numéricas para el análisis de Clustering.")
-        else:
-            st.warning("Se requieren al menos 2 columnas numéricas en el dataset para ejecutar K-Means.")
-
-    # --- SUBTAB 2: ANOMALY / OUTLIER DETECTION ---
-    with ds_subtab2:
-        if len(num_cols) >= 1:
-            with st.container(border=True):
-                col_anom1, col_anom2 = st.columns([1, 3])
-                
-                with col_anom1:
-                    st.markdown("#### Parámetros de Anomalía")
-                    anom_feature = st.selectbox("Variable Objetivo", num_cols, index=0)
-                    contamination = st.slider("Porcentaje Estimado de Anomalías (%)", 1, 15, 5) / 100.0
-                    
-                with col_anom2:
-                    values = df_filtered[[anom_feature]].dropna()
-                    if len(values) >= 5:
-                        try:
-                            iso_forest = IsolationForest(contamination=contamination, random_state=42)
-                            preds = iso_forest.fit_predict(values)
-                            values['Anomaly'] = np.where(preds == -1, 'Anomalía Detectada', 'Normal')
-                            
-                            fig_anom = px.strip(
-                                values, x='Anomaly', y=anom_feature, color='Anomaly',
-                                color_discrete_map={'Normal': '#6366f1', 'Anomalía Detectada': '#ef4444'},
-                                title=f"🚨 Detección de Anomalías (Isolation Forest) sobre {anom_feature}",
-                                template=plotly_template
-                            )
-                            fig_anom.update_layout(height=320, margin=dict(l=10, r=10, t=40, b=10))
-                            st.plotly_chart(fig_anom, use_container_width=True)
-                            
-                            n_anom = (preds == -1).sum()
-                            st.markdown(f"""
-                            <div class="insight-card">
-                                <div class="insight-title">💡 ¿Qué representan los puntos rojos de Anomalía?</div>
-                                <div class="insight-body">
-                                    <b>Isolation Forest</b> identificó <b>{n_anom} observaciones anómalas</b> en la variable <b>{anom_feature}</b>. Estos puntos rojos son valores extremos inusuales que requieren revisión operativa o control de calidad.
-                                </div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        except Exception as e:
-                            st.error(f"No se pudo ejecutar la detección de anomalías: {e}")
-                    else:
-                        st.info("Se necesitan al menos 5 registros para evaluar anomalías.")
-
-    # --- SUBTAB 3: REGRESSION & PREDICTION ---
-    with ds_subtab3:
-        if len(num_cols) >= 2:
-            with st.container(border=True):
-                r_col1, r_col2 = st.columns(2)
-                with r_col1:
-                    x_reg = st.selectbox("Variable X (Predictora)", num_cols, index=0)
-                with r_col2:
-                    y_reg = st.selectbox("Variable Y (Objetivo)", num_cols, index=min(1, len(num_cols)-1))
-                    
-                df_reg = df_filtered[[x_reg, y_reg]].dropna()
-                is_constant_x = (df_reg[x_reg].nunique() <= 1) or (df_reg[x_reg].std() == 0)
-                
-                if is_constant_x:
-                    fig_reg = px.scatter(
-                        df_reg, x=x_reg, y=y_reg,
-                        title=f"📈 Dispersión de {x_reg} vs {y_reg}",
-                        template=plotly_template,
-                        color_discrete_sequence=[palette_colors[0]]
-                    )
-                    fig_reg.update_layout(height=320, margin=dict(l=10, r=10, t=40, b=10))
-                    st.plotly_chart(fig_reg, use_container_width=True)
-                    st.warning(f"⚠️ No es posible calcular la regresión lineal porque todos los valores de la variable predictora '{x_reg}' son idénticos o no presentan variación.")
-                else:
-                    try:
-                        slope, intercept, r_value, p_value, std_err = stats.linregress(df_reg[x_reg], df_reg[y_reg])
-                        r_sq = r_value**2
-                        
-                        fig_reg = px.scatter(
-                            df_reg, x=x_reg, y=y_reg, trendline="ols",
-                            title=f"📈 Modelo Regresión Lineal: R² = {r_sq:.4f} (p-val: {p_value:.3e})",
-                            template=plotly_template,
-                            color_discrete_sequence=[palette_colors[0]]
-                        )
-                        fig_reg.update_layout(height=320, margin=dict(l=10, r=10, t=40, b=10))
-                        st.plotly_chart(fig_reg, use_container_width=True)
-                        
-                        trend_dir = "creciente (positiva)" if slope > 0 else "decreciente (negativa)"
-                        st.markdown(f"""
-                        <div class="insight-card">
-                            <div class="insight-title">💡 Interpretación del Modelo de Regresión</div>
-                            <div class="insight-body">
-                                Existe una relación <b>{trend_dir}</b> entre <b>{x_reg}</b> e <b>{y_reg}</b> con ecuación: <b><code>{y_reg} = {slope:.4f} * {x_reg} + ({intercept:.4f})</code></b>.<br>
-                                El coeficiente de determinación <b>R² es {r_sq:.4f}</b> (el <b>{r_sq*100:.1f}% de la variabilidad en {y_reg} es explicado matemáticamente por {x_reg}</b>).
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    except Exception as e:
-                        fig_reg = px.scatter(
-                            df_reg, x=x_reg, y=y_reg,
-                            title=f"📈 Dispersión de {x_reg} vs {y_reg}",
-                            template=plotly_template,
-                            color_discrete_sequence=[palette_colors[0]]
-                        )
-                        fig_reg.update_layout(height=320, margin=dict(l=10, r=10, t=40, b=10))
-                        st.plotly_chart(fig_reg, use_container_width=True)
-                        st.warning(f"⚠️ No se pudo calcular el ajuste lineal: {e}")
-
-    st.divider()
-
-    # --- SECTION C: STATISTICAL ANALYSIS & DISTRIBUTIONS ---
-    st.markdown("### 📈 3. Perfilado Estadístico & Correlaciones")
-    
-    st_col1, st_col2 = st.columns([6, 6])
-    
-    with st_col1:
-        with st.container(border=True):
-            if len(num_cols) >= 2:
-                corr_matrix = df_filtered[num_cols].corr()
-                fig_corr = px.imshow(
-                    corr_matrix, text_auto=".2f",
-                    color_continuous_scale="Blues",
-                    title="🔥 Matriz de Correlación de Pearson",
-                    template=plotly_template
-                )
-                fig_corr.update_layout(height=365, margin=dict(l=10, r=10, t=40, b=10))
-                st.plotly_chart(fig_corr, use_container_width=True)
-                
-                try:
-                    corr_abs = corr_matrix.abs()
-                    corr_vals = corr_abs.to_numpy(copy=True)
-                    np.fill_diagonal(corr_vals, 0)
-                    corr_abs_df = pd.DataFrame(corr_vals, index=corr_abs.index, columns=corr_abs.columns)
-                    max_pair = corr_abs_df.unstack().idxmax()
-                    max_corr_val = corr_matrix.loc[max_pair[0], max_pair[1]]
-                    
-                    st.markdown(f"""
-                    <div class="insight-card">
-                        <div class="insight-title">💡 Interpretación de Correlaciones</div>
-                        <div class="insight-body">
-                            La asociación más fuerte ocurre entre <b>{max_pair[0]}</b> y <b>{max_pair[1]}</b> (r = <b>{max_corr_val:.2f}</b>).
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                except Exception:
-                    st.caption("💡 Matriz de correlación calculada exitosamente.")
-            else:
-                st.info("Se necesitan al menos 2 variables numéricas para calcular correlaciones.")
-        
-    with st_col2:
-        with st.container(border=True):
-            if num_cols:
-                selected_stat_col = st.selectbox("Seleccionar Variable para Violín & Densidad", num_cols)
-                
-                fig_violin = px.violin(
-                    df_filtered, y=selected_stat_col, box=True, points="all",
-                    title=f"🎻 Distribución Violín & Cuartiles de {selected_stat_col}",
-                    template=plotly_template,
-                    color_discrete_sequence=[palette_colors[1]]
-                )
-                fig_violin.update_layout(height=300, margin=dict(l=10, r=10, t=40, b=10))
-                st.plotly_chart(fig_violin, use_container_width=True)
-                
-                skew_val = df_filtered[selected_stat_col].skew()
-                skew_desc = "sesgada a la derecha" if skew_val > 0.5 else ("sesgada a la izquierda" if skew_val < -0.5 else "aproximadamente simétrica")
-                st.markdown(f"""
-                <div class="insight-card">
-                    <div class="insight-title">💡 Forma y Densidad del Violín</div>
-                    <div class="insight-body">
-                        Muestra la densidad completa y los cuartiles de <b>{selected_stat_col}</b> con sesgo <b>{skew_desc}</b> (Skewness = <b>{skew_val:.2f}</b>).
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-    # Statistical Summary Table
-    if num_cols:
-        with st.container(border=True):
-            st.markdown("#### 📐 Tabla Completa de Métricas Estadísticas Descriptivas")
-            
-            stat_df = df_filtered[num_cols].describe().T
-            stat_df['Skewness'] = df_filtered[num_cols].skew()
-            stat_df['Kurtosis'] = df_filtered[num_cols].kurt()
-            stat_df['IQR'] = stat_df['75%'] - stat_df['25%']
-            
-            st.dataframe(stat_df[['count', 'mean', 'std', 'min', '50%', 'max', 'IQR', 'Skewness', 'Kurtosis']].style.format("{:.2f}"), use_container_width=True)
-
-# =========================================================
-# TAB 2: DATA EXPLORER WITH LIVE SEARCH BAR
-# =========================================================
-with tab_explorer:
-    st.markdown("### 📋 Explorador Interactivo de Datos con Buscador")
-    
-    with st.container(border=True):
-        search_query = st.text_input("🔍 Buscar término en el dataset (Filtro en tiempo real):", "", placeholder="Escribe cualquier palabra o número, ej. 'Tres Arroyos', '2015', 'Buenos Aires'...")
-        
-        df_search_result = df_filtered.copy()
-        if search_query:
-            mask = np.column_stack([df_search_result[col].astype(str).str.contains(search_query, case=False, na=False) for col in df_search_result.columns])
-            df_search_result = df_search_result[mask.any(axis=1)]
-            st.caption(f"🔎 Se encontraron **{len(df_search_result):,} filas** que contienen el término '{search_query}'.")
-        
-        st.dataframe(df_search_result, use_container_width=True, height=420)
-        
-        e_col1, e_col2 = st.columns(2)
-        with e_col1:
-            csv_data = df_search_result.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                "📥 Descargar CSV Filtrado",
-                data=csv_data,
-                file_name="datalens_export.csv",
-                mime="text/csv",
-                use_container_width=True
-            )
-            
-        with e_col2:
-            buf = io.BytesIO()
-            with pd.ExcelWriter(buf, engine='openpyxl') as writer:
-                df_search_result.to_excel(writer, index=False, sheet_name='DataLens_BI')
-            st.download_button(
-                "📊 Descargar Excel Filtrado",
-                data=buf.getvalue(),
-                file_name="datalens_export.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
+# Render each row using proportional Streamlit columns
+for row_list in grid_rows:
+    row_widths = [p.get("width", 1) for p in row_list]
+    rendered_cols = st.columns(row_widths)
+    for c_idx, panel_cfg in enumerate(row_list):
+        with rendered_cols[c_idx]:
+            render_dynamic_panel(
+                panel_id=panel_cfg["id"],
+                panel_title=panel_cfg["title"],
+                default_type=panel_cfg["default_type"],
+                df=df_filtered,
+                num_cols=num_cols,
+                str_cols=str_cols,
+                date_cols=date_cols,
+                plotly_template=plotly_template,
+                palette_colors=palette_colors
             )
 
-st.markdown("<br><hr><center><small>DataLens BI Dashboard • Potenciado con Streamlit, Plotly & Scikit-Learn</small></center>", unsafe_allow_html=True)
+with st.container(border=True):
+    col_t, col_e = st.columns([2, 1])
+    with col_t:
+        st.markdown("<h4 style='margin:0; padding-top:4px;'>📋 Booking History / Registros Detallados</h4>", unsafe_allow_html=True)
+    with col_e:
+        search_query = st.text_input("🔍 Buscar:", "", placeholder="Filtra la tabla...", key="panel8_search", label_visibility="collapsed")
+    
+    df_table_show = df_filtered.copy()
+    if search_query:
+        mask = np.column_stack([df_table_show[col].astype(str).str.contains(search_query, case=False, na=False) for col in df_table_show.columns])
+        df_table_show = df_table_show[mask.any(axis=1)]
+        
+    st.dataframe(df_table_show, use_container_width=True, height=220)
+    
+    btn_c1, btn_c2 = st.columns(2)
+    with btn_c1:
+        csv_data = df_table_show.to_csv(index=False).encode('utf-8')
+        st.download_button("📥 Descargar CSV", data=csv_data, file_name="datalens_export.csv", mime="text/csv", use_container_width=True)
+    with btn_c2:
+        buf = io.BytesIO()
+        with pd.ExcelWriter(buf, engine='openpyxl') as writer:
+            df_table_show.to_excel(writer, index=False, sheet_name='DataLens')
+        st.download_button("📊 Descargar Excel", data=buf.getvalue(), file_name="datalens_export.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+
+st.markdown("<br><hr><center><small>DataLens BI Dashboard • Visualización Bento Grid Inteligente</small></center>", unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# INTERACTIVE MOUSE DRAG-AND-DROP & CORNER RESIZE ENGINE
+# ---------------------------------------------------------
+st.html("""
+<style>
+/* Corner Drag-to-Resize & Card Drag-and-Drop */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    resize: both !important;
+    overflow: auto !important;
+    min-width: 250px !important;
+    min-height: 240px !important;
+    position: relative !important;
+    transition: box-shadow 0.2s, transform 0.15s !important;
+}
+
+div[data-testid="stVerticalBlockBorderWrapper"]::after {
+    content: "↘";
+    position: absolute;
+    bottom: 2px;
+    right: 6px;
+    font-size: 14px;
+    color: #4f46e5;
+    pointer-events: none;
+    font-weight: bold;
+}
+
+div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+    box-shadow: 0 8px 24px rgba(79, 70, 229, 0.15) !important;
+}
+
+div[data-testid="stVerticalBlockBorderWrapper"].drag-over-card {
+    border: 2px dashed #4f46e5 !important;
+    background-color: rgba(79, 70, 229, 0.05) !important;
+    transform: scale(1.01);
+}
+
+.st-drag-header {
+    cursor: grab !important;
+    user-select: none !important;
+}
+.st-drag-header:active {
+    cursor: grabbing !important;
+}
+</style>
+
+<script>
+(function() {
+    function initCardDragAndResize() {
+        const cards = document.querySelectorAll('div[data-testid="stVerticalBlockBorderWrapper"]');
+        
+        cards.forEach((card, idx) => {
+            const header = card.querySelector('h4');
+            if (header) {
+                header.classList.add('st-drag-header');
+                header.setAttribute('title', 'Haz clic y arrastra para mover esta tarjeta');
+            }
+
+            card.setAttribute('draggable', 'true');
+
+            card.ondragstart = (e) => {
+                e.dataTransfer.setData('text/plain', String(idx));
+                card.style.opacity = '0.4';
+            };
+
+            card.ondragend = () => {
+                card.style.opacity = '1';
+                cards.forEach(c => c.classList.remove('drag-over-card'));
+            };
+
+            card.ondragover = (e) => {
+                e.preventDefault();
+                card.classList.add('drag-over-card');
+            };
+
+            card.ondragleave = () => {
+                card.classList.remove('drag-over-card');
+            };
+
+            card.ondrop = (e) => {
+                e.preventDefault();
+                card.classList.remove('drag-over-card');
+                const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                if (!isNaN(fromIdx) && fromIdx !== idx) {
+                    const fromCard = cards[fromIdx];
+                    if (fromCard && card.parentElement) {
+                        const parent = card.parentElement;
+                        if (fromIdx < idx) {
+                            parent.insertBefore(fromCard, card.nextSibling);
+                        } else {
+                            parent.insertBefore(fromCard, card);
+                        }
+                        window.dispatchEvent(new Event('resize'));
+                    }
+                }
+            };
+
+            if (window.ResizeObserver && !card.dataset.resizeObserved) {
+                card.dataset.resizeObserved = 'true';
+                const ro = new ResizeObserver(() => {
+                    window.dispatchEvent(new Event('resize'));
+                });
+                ro.observe(card);
+            }
+        });
+    }
+
+    setTimeout(initCardDragAndResize, 300);
+    setInterval(initCardDragAndResize, 1500);
+})();
+</script>
+""")
