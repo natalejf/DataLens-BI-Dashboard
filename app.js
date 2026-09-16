@@ -55,6 +55,7 @@ function setupEventListeners() {
     // Sidebar toggle
     const btnToggleSidebar = $('btnToggleSidebar');
     const btnExpandSidebar = $('btnExpandSidebar');
+    const mobileMenuToggleBar = $('mobileMenuToggleBar');
     const sidebar = document.querySelector('.bi-sidebar');
 
     function toggleSidebar() {
@@ -62,6 +63,9 @@ function setupEventListeners() {
         const isCollapsed = sidebar.classList.toggle('collapsed');
         if (btnExpandSidebar) {
             btnExpandSidebar.hidden = !isCollapsed;
+        }
+        if (mobileMenuToggleBar) {
+            mobileMenuToggleBar.classList.toggle('expanded', !isCollapsed);
         }
         const resizeAllCharts = () => {
             charts.forEach(c => {
@@ -80,6 +84,9 @@ function setupEventListeners() {
     if (btnExpandSidebar) {
         btnExpandSidebar.addEventListener('click', toggleSidebar);
     }
+    if (mobileMenuToggleBar) {
+        mobileMenuToggleBar.addEventListener('click', toggleSidebar);
+    }
 
     // Header buttons
     const btnNew = $('btnNew');
@@ -91,8 +98,8 @@ function setupEventListeners() {
     const btnRefresh = $('btnRefresh');
     if (btnRefresh) btnRefresh.addEventListener('click', () => renderReport());
     
-    const btnExportPdf = $('btnExportPdf');
-    if (btnExportPdf) btnExportPdf.addEventListener('click', exportToPDF);
+    const btnCaptureDashboard = $('btnCaptureDashboard');
+    if (btnCaptureDashboard) btnCaptureDashboard.addEventListener('click', captureDashboardScreenshot);
     
     const btnExport = $('btnExport');
     if (btnExport) btnExport.addEventListener('click', exportReportJSON);
@@ -173,6 +180,13 @@ function setupEventListeners() {
         });
     });
     
+    // Guide Modal
+    const btnGuide = $('btnGuide');
+    if (btnGuide) btnGuide.addEventListener('click', openGuideModal);
+    
+    const guideCloseBtn = $('guideCloseBtn');
+    if (guideCloseBtn) guideCloseBtn.addEventListener('click', closeGuideModal);
+
     // Modals
     const modalCloseBtn = $('modalCloseBtn');
     if (modalCloseBtn) modalCloseBtn.addEventListener('click', () => safeSetHidden('chartModal', true));
@@ -183,6 +197,34 @@ function setupEventListeners() {
     const errorCloseBtn = $('errorCloseBtn');
     if (errorCloseBtn) errorCloseBtn.addEventListener('click', () => safeSetHidden('errorModal', true));
 }
+
+window.openGuideModal = function() {
+    safeSetHidden('guideModal', false);
+};
+
+window.closeGuideModal = function() {
+    safeSetHidden('guideModal', true);
+};
+
+window.copyPromptText = function(elementId) {
+    const el = $(elementId);
+    if (!el) return;
+    const textToCopy = el.textContent || el.innerText;
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        const btns = document.querySelectorAll('.btn-copy-prompt');
+        btns.forEach(b => {
+            const originalText = b.textContent;
+            b.textContent = '✅ ¡Copiado!';
+            b.style.background = 'var(--success)';
+            setTimeout(() => {
+                b.textContent = originalText;
+                b.style.background = 'var(--accent)';
+            }, 2000);
+        });
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+    });
+};
 
 function switchToRightTab(tab) {
     const isInsights = tab === 'insights';
@@ -274,7 +316,7 @@ async function handleFile(file) {
         safeSetHidden('fileInfo', false);
         safeSetDisabled('btnRefresh', false);
         safeSetDisabled('btnExport', false);
-        safeSetDisabled('btnExportPdf', false);
+        safeSetDisabled('btnCaptureDashboard', false);
         
         renderLoadedFiles();
         renderFieldsList();
@@ -426,7 +468,7 @@ function removeFile(fileName) {
         showState('uploadState');
         safeSetDisabled('btnRefresh', true);
         safeSetDisabled('btnExport', true);
-        safeSetDisabled('btnExportPdf', true);
+        safeSetDisabled('btnCaptureDashboard', true);
         return;
     }
     let allKeys = new Set();
@@ -1208,19 +1250,50 @@ function exportReportJSON() {
     a.click();
 }
 
-function exportToPDF() {
-    const element = document.getElementById('reportState');
-    if (!element) return;
-    const fileName = $('fileName') ? $('fileName').textContent : 'reporte';
-    const opt = {
-      margin:       0.2,
-      filename:     fileName.split('.')[0] + '_reporte.pdf',
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true },
-      jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
-    };
-    if (window.html2pdf) {
-        html2pdf().set(opt).from(element).save();
+async function captureDashboardScreenshot() {
+    const element = document.querySelector('.report-canvas') || document.getElementById('reportState');
+    const btn = $('btnCaptureDashboard');
+    if (!element || !window.html2canvas) return;
+    
+    const origText = btn ? btn.textContent : '📸 Capturar Dashboard';
+    if (btn) btn.textContent = '📸 Capturando...';
+    
+    try {
+        const canvas = await window.html2canvas(element, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            logging: false
+        });
+        
+        const fileName = ($('fileName') ? $('fileName').textContent : 'dashboard').split('.')[0];
+        
+        // 1. Download PNG file
+        const link = document.createElement('a');
+        link.download = fileName + '_captura.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        
+        // 2. Copy image to Clipboard if supported by browser
+        if (canvas.toBlob && navigator.clipboard && navigator.clipboard.write) {
+            canvas.toBlob(async (blob) => {
+                try {
+                    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                    if (btn) btn.textContent = '✅ ¡Copiado al Portapapeles!';
+                } catch (e) {
+                    if (btn) btn.textContent = '✅ ¡Imagen Descargada!';
+                }
+                setTimeout(() => { if (btn) btn.textContent = origText; }, 2500);
+            }, 'image/png');
+        } else {
+            if (btn) btn.textContent = '✅ ¡Imagen Descargada!';
+            setTimeout(() => { if (btn) btn.textContent = origText; }, 2500);
+        }
+
+    } catch (err) {
+        console.error('Error al capturar el dashboard:', err);
+        if (btn) btn.textContent = '❌ Error al capturar';
+        setTimeout(() => { if (btn) btn.textContent = origText; }, 2500);
     }
 }
 

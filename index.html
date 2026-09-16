@@ -45,10 +45,11 @@
             </div>
 
             <div class="header-right">
+                <button id="btnGuide" class="action-btn" title="Guía de uso y Prompt IA">💡 Guía & Prompt IA</button>
                 <button id="btnRefresh" class="action-btn icon-btn" title="Actualizar" disabled>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                 </button>
-                <button id="btnExportPdf" class="action-btn" disabled>Exportar PDF</button>
+                <button id="btnCaptureDashboard" class="action-btn" title="Copiar y descargar captura completa del dashboard" disabled>📸 Capturar Dashboard</button>
                 <button id="btnNew" class="action-btn primary-btn">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     <span id="btnNewText">Obtener datos</span>
@@ -57,6 +58,15 @@
         </header>
 
         <div class="bi-workspace">
+            <!-- MOBILE VERTICAL TOGGLE BAR (<768px) -->
+            <button id="mobileMenuToggleBar" class="mobile-menu-toggle-bar">
+                <div class="mobile-toggle-info">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    <span>📁 Menú de Archivos y Filtros</span>
+                </div>
+                <span id="mobileMenuChevron" class="mobile-menu-chevron">▼</span>
+            </button>
+
             <!-- LEFT PANEL: FILE MANAGEMENT (Collapsible) -->
             <aside class="bi-sidebar" id="biSidebar">
                 <div class="sidebar-header">
@@ -183,6 +193,48 @@
             </div>
         </div>
         
+        <div class="modal-overlay" id="guideModal" hidden>
+            <div class="modal-container guide-modal">
+                <div class="modal-header">
+                    <h3>💡 Guía de Uso & Prompt para IA</h3>
+                    <button class="modal-close" id="guideCloseBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="guide-section">
+                        <h4>📖 Instrucciones Rápidas de Uso</h4>
+                        <ol class="guide-steps-list">
+                            <li><strong>1. Cargar Datos:</strong> Haz clic en <code>+ Obtener datos</code> o arrastra tus archivos (CSV, Excel, JSON). Puedes subir varios archivos para combinar o comparar.</li>
+                            <li><strong>2. Filtros Cruzados (Slicers):</strong> En el menú lateral izquierdo puedes filtrar por cualquier categoría en tiempo real. Al hacer clic en un filtro o barra, toda la pantalla se recalcula.</li>
+                            <li><strong>3. Menú Plegable y Mobile:</strong> Haz clic en <code>Ocultar Menú</code> abajo a la izquierda para expandir el área visual al 100%. Usa el botón flotante <code>>></code> para reabrirlo.</li>
+                            <li><strong>4. Personalizar Gráficos:</strong> En cada tarjeta de gráfico puedes cambiar el tipo (Barras, Donut, Horizontales, Scatter) o activar 📈 <code>Proyectar</code>.</li>
+                        </ol>
+                    </div>
+
+                    <div class="guide-section" style="margin-top:20px;">
+                        <h4>🤖 Prompt Sugerido para Pedirle a la IA</h4>
+                        <p class="guide-text">Si tienes un archivo crudo o desordenado, cópiale este prompt a ChatGPT, Gemini o Claude para estructurarlo en 5 segundos y obtener las mejores visualizaciones:</p>
+                        <div class="prompt-code-block" style="margin-top:10px;">
+                            <code id="promptTextModal">Por favor limpia y estructura este archivo CSV/Excel para mi plataforma de BI (DataLens BI):
+
+1. Elimina columnas con valores constantes repetidos en todas las filas (ej. IDs estáticos, país si es el mismo).
+2. Renombra encabezados a nombres limpios de negocio (ej. "Fecha", "Categoría", "Producto", "Monto", "Cantidad").
+3. Asegura tener:
+   - 1 columna de Fecha (formato YYYY-MM-DD).
+   - 1 a 3 columnas Categóricas con entre 3 y 15 variantes distintas (ej. Categoría, Producto, Zona).
+   - 1 a 2 columnas Numéricas cuantitativas limpias.
+4. Devuélveme el resultado en formato CSV.</code>
+                            <button class="btn-copy-prompt" onclick="copyPromptText('promptTextModal')">📋 Copiar Prompt para IA</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-primary" onclick="closeGuideModal()">Entendido</button>
+                </div>
+            </div>
+        </div>
+
         <div class="modal-overlay" id="errorModal" hidden>
             <div class="modal-container error-modal">
                 <div class="modal-header">
