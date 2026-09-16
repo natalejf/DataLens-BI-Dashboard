@@ -238,3 +238,64 @@ html, body {
 .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; }
 .btn-primary { background: var(--accent); color: white; padding: 8px 16px; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
 .btn-primary:hover { background: var(--accent-hover); }
+
+/* MOBILE & TABLET RESPONSIVE STYLES (<768px) */
+@media (max-width: 768px) {
+    .bi-app { height: auto; min-height: 100vh; overflow-y: auto; overflow-x: hidden; }
+    
+    .bi-header {
+        flex-direction: column; height: auto; padding: 12px 16px; gap: 12px;
+        align-items: stretch; text-align: center;
+    }
+    
+    .header-left { justify-content: center; }
+    .brand { justify-content: center; }
+    .brand-title { font-size: 15px; }
+    .brand-subtitle { font-size: 10px; }
+    
+    .header-center { width: 100%; justify-content: center; }
+    .segmented-control { width: 100%; justify-content: space-around; gap: 4px; }
+    .seg-btn { flex: 1; padding: 6px 8px; font-size: 11px; text-align: center; justify-content: center; }
+    
+    .header-right { width: 100%; justify-content: center; gap: 8px; flex-wrap: wrap; }
+    .action-btn { padding: 8px 12px; font-size: 11px; flex: 1; justify-content: center; min-width: 100px; }
+    
+    .bi-workspace { flex-direction: column; position: relative; overflow: visible; }
+    
+    .bi-sidebar {
+        position: absolute; top: 0; left: 0; bottom: 0; z-index: 200;
+        width: 85% !important; max-width: 320px;
+        box-shadow: 6px 0 20px rgba(0,0,0,0.2);
+        height: 100%; background: var(--bg-panel);
+    }
+    
+    .bi-sidebar.collapsed {
+        width: 0 !important;
+        opacity: 0;
+        pointer-events: none;
+    }
+    
+    .canvas-state { padding: 16px 12px; }
+    
+    .kpi-grid { grid-template-columns: 1fr; gap: 12px; }
+    .kpi-card { padding: 14px; }
+    .kpi-value-text { font-size: 20px; }
+    
+    .charts-grid { grid-template-columns: 1fr; gap: 16px; }
+    .chart-card { padding: 14px; }
+    .chart-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .chart-title { font-size: 13px; max-width: 100%; white-space: normal; }
+    .chart-actions { width: 100%; justify-content: space-between; }
+    .chart-body { height: 230px; }
+    
+    .upload-box { padding: 32px 16px; margin: 20px auto; }
+    .floating-expand-btn { bottom: 16px; left: 16px; width: 44px; height: 44px; z-index: 300; }
+}
+
+@media (max-width: 480px) {
+    .brand-title { font-size: 14px; }
+    .seg-btn { font-size: 10px; padding: 6px 2px; }
+    .kpi-value-text { font-size: 18px; }
+    .chart-body { height: 200px; }
+    .action-btn { font-size: 10px; padding: 6px 8px; }
+}

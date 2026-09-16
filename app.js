@@ -43,6 +43,12 @@ function safeSetDisabled(id, disabled) {
 function init() {
     setupEventListeners();
     loadTheme();
+    if (window.innerWidth < 768) {
+        const sidebar = document.querySelector('.bi-sidebar');
+        const btnExpandSidebar = $('btnExpandSidebar');
+        if (sidebar) sidebar.classList.add('collapsed');
+        if (btnExpandSidebar) btnExpandSidebar.hidden = false;
+    }
 }
 
 function setupEventListeners() {

@@ -1,0 +1,9 @@
+Por favor limpia y estructura este archivo CSV/Excel para mi plataforma de Business Intelligence (DataLens BI):
+
+1. Elimina columnas con valores constantes repetidos en todas las filas (ej. IDs estáticos, país si siempre es el mismo).
+2. Renombra los encabezados a nombres limpios de negocio (ej. "Fecha" en vez de "indice_tiempo", "Producto" en vez de "actividad_producto_nombre", "Cantidad (tn)" en vez de "valor").
+3. Asegúrate de tener al menos:
+   - 1 columna de Fecha (formato YYYY-MM-DD).
+   - 1 a 3 columnas Categóricas con entre 3 y 15 variantes distintas (ej. Producto, Categoría, Zona, Canal).
+   - 1 a 2 columnas Numéricas cuantificables sin símbolos de moneda (ej. 154000.50).
+4. Devuélveme el resultado en formato CSV.
