@@ -935,7 +935,7 @@ with tab_full_dashboard:
                     title="🔥 Matriz de Correlación de Pearson",
                     template=plotly_template
                 )
-                fig_corr.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
+                fig_corr.update_layout(height=415, margin=dict(l=10, r=10, t=40, b=10))
                 st.plotly_chart(fig_corr, use_container_width=True)
                 
                 try:
@@ -950,7 +950,7 @@ with tab_full_dashboard:
                     <div class="insight-card">
                         <div class="insight-title">💡 Interpretación de Correlaciones</div>
                         <div class="insight-body">
-                            La asociación más fuerte ocurre entre <b>{max_pair[0]}</b> y <b>{max_pair[1]}</b> ($r =$ <b>{max_corr_val:.2f}</b>).
+                            La asociación más fuerte ocurre entre <b>{max_pair[0]}</b> y <b>{max_pair[1]}</b> (r = <b>{max_corr_val:.2f}</b>).
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
@@ -979,7 +979,7 @@ with tab_full_dashboard:
                 <div class="insight-card">
                     <div class="insight-title">💡 Forma y Densidad del Violín</div>
                     <div class="insight-body">
-                        Muestra la densidad completa y los cuartiles de <b>{selected_stat_col}</b> con sesgo <b>{skew_desc}</b> ($Skewness = {skew_val:.2f}$).
+                        Muestra la densidad completa y los cuartiles de <b>{selected_stat_col}</b> con sesgo <b>{skew_desc}</b> (Skewness = <b>{skew_val:.2f}</b>).
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
