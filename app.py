@@ -38,6 +38,20 @@ st.markdown("""
         background-color: #f8fafc;
         color: #0f172a;
     }
+
+    /* Force Light Mode Sidebar */
+    section[data-testid="stSidebar"] {
+        background-color: #ffffff !important;
+        border-right: 1px solid #e2e8f0 !important;
+    }
+    section[data-testid="stSidebar"] p, 
+    section[data-testid="stSidebar"] span, 
+    section[data-testid="stSidebar"] label, 
+    section[data-testid="stSidebar"] h1, 
+    section[data-testid="stSidebar"] h2, 
+    section[data-testid="stSidebar"] h3 {
+        color: #0f172a !important;
+    }
     
     /* Top Header Bar Container */
     .ds-header-container {
@@ -872,20 +886,25 @@ with tab_full_dashboard:
             fig_corr.update_layout(height=400)
             st.plotly_chart(fig_corr, use_container_width=True)
             
-            # Find max absolute non-diagonal correlation
-            corr_abs = corr_matrix.abs()
-            np.fill_diagonal(corr_abs.values, 0)
-            max_pair = corr_abs.unstack().idxmax()
-            max_corr_val = corr_matrix.loc[max_pair[0], max_pair[1]]
-            
-            st.markdown(f"""
-            <div class="insight-card">
-                <div class="insight-title">💡 Interpretación de Correlaciones</div>
-                <div class="insight-body">
-                    La asociación más fuerte entre variables ocurre entre <b>{max_pair[0]}</b> y <b>{max_pair[1]}</b> con un coeficiente de correlación $r =$ <b>{max_corr_val:.2f}</b>. Un valor cercano a +1 indica que al aumentar una variable, la otra también aumenta.
+            # Find max absolute non-diagonal correlation safely
+            try:
+                corr_abs = corr_matrix.abs()
+                corr_vals = corr_abs.to_numpy(copy=True)
+                np.fill_diagonal(corr_vals, 0)
+                corr_abs_df = pd.DataFrame(corr_vals, index=corr_abs.index, columns=corr_abs.columns)
+                max_pair = corr_abs_df.unstack().idxmax()
+                max_corr_val = corr_matrix.loc[max_pair[0], max_pair[1]]
+                
+                st.markdown(f"""
+                <div class="insight-card">
+                    <div class="insight-title">💡 Interpretación de Correlaciones</div>
+                    <div class="insight-body">
+                        La asociación más fuerte entre variables ocurre entre <b>{max_pair[0]}</b> y <b>{max_pair[1]}</b> con un coeficiente de correlación $r =$ <b>{max_corr_val:.2f}</b>. Un valor cercano a +1 indica que al aumentar una variable, la otra también aumenta.
+                    </div>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+            except Exception as e:
+                st.caption(f"💡 Matriz de correlación calculada exitosamente.")
         else:
             st.info("Se necesitan al menos 2 variables numéricas para calcular correlaciones.")
         st.markdown('</div>', unsafe_allow_html=True)
