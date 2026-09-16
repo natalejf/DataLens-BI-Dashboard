@@ -1250,52 +1250,82 @@ function exportReportJSON() {
     a.click();
 }
 
-async function captureDashboardScreenshot() {
-    const element = document.querySelector('.report-canvas') || document.getElementById('reportState');
+window.captureDashboardScreenshot = async function() {
     const btn = $('btnCaptureDashboard');
-    if (!element || !window.html2canvas) return;
-    
-    const origText = btn ? btn.textContent : '📸 Capturar Dashboard';
-    if (btn) btn.textContent = '📸 Capturando...';
-    
-    try {
-        const canvas = await window.html2canvas(element, {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: '#ffffff',
-            logging: false
-        });
-        
-        const fileName = ($('fileName') ? $('fileName').textContent : 'dashboard').split('.')[0];
-        
-        // 1. Download PNG file
-        const link = document.createElement('a');
-        link.download = fileName + '_captura.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        
-        // 2. Copy image to Clipboard if supported by browser
-        if (canvas.toBlob && navigator.clipboard && navigator.clipboard.write) {
-            canvas.toBlob(async (blob) => {
-                try {
-                    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-                    if (btn) btn.textContent = '✅ ¡Copiado al Portapapeles!';
-                } catch (e) {
-                    if (btn) btn.textContent = '✅ ¡Imagen Descargada!';
-                }
-                setTimeout(() => { if (btn) btn.textContent = origText; }, 2500);
+    const element = document.querySelector('.bi-app') || document.body;
+    if (!element) return;
+
+    const origText = btn ? btn.textContent : '📸 Capturar Página Completa';
+    if (btn) btn.textContent = '📸 Generando Captura Full Page...';
+
+    const blobPromise = new Promise(async (resolve, reject) => {
+        try {
+            const h2c = window.html2canvas || (window.html2pdf ? window.html2pdf.html2canvas : null);
+            if (!h2c) {
+                reject(new Error('html2canvas no está cargado'));
+                return;
+            }
+
+            const fullWidth = Math.max(element.scrollWidth, document.documentElement.scrollWidth, 1200);
+            const fullHeight = Math.max(element.scrollHeight, document.documentElement.scrollHeight, 800);
+
+            const canvas = await h2c(element, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-app') || '#f4f6f9',
+                logging: false,
+                width: fullWidth,
+                height: fullHeight,
+                windowWidth: fullWidth,
+                windowHeight: fullHeight,
+                scrollX: 0,
+                scrollY: 0
+            });
+
+            // 1. Descarga automática de la imagen PNG completa
+            const fileName = ($('fileName') ? $('fileName').textContent : 'dashboard').split('.')[0];
+            const link = document.createElement('a');
+            link.download = fileName + '_captura_completa.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+
+            // 2. Generar blob para el portapapeles
+            canvas.toBlob((blob) => {
+                if (blob) resolve(blob);
+                else reject(new Error('Error al generar blob de la imagen'));
             }, 'image/png');
+
+        } catch (err) {
+            reject(err);
+        }
+    });
+
+    if (navigator.clipboard && window.ClipboardItem) {
+        try {
+            const item = new ClipboardItem({ 'image/png': blobPromise });
+            await navigator.clipboard.write([item]);
+            if (btn) btn.textContent = '✅ ¡Página Completa Copiada!';
+            setTimeout(() => { if (btn) btn.textContent = origText; }, 2500);
+            return;
+        } catch (err) {
+            console.warn('ClipboardItem promise fallback:', err);
+        }
+    }
+
+    try {
+        const blob = await blobPromise;
+        if (navigator.clipboard && navigator.clipboard.write) {
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+            if (btn) btn.textContent = '✅ ¡Página Completa Copiada!';
         } else {
             if (btn) btn.textContent = '✅ ¡Imagen Descargada!';
-            setTimeout(() => { if (btn) btn.textContent = origText; }, 2500);
         }
-
     } catch (err) {
-        console.error('Error al capturar el dashboard:', err);
+        console.error('Error al capturar:', err);
         if (btn) btn.textContent = '❌ Error al capturar';
-        setTimeout(() => { if (btn) btn.textContent = origText; }, 2500);
     }
-}
+    setTimeout(() => { if (btn) btn.textContent = origText; }, 2500);
+};
 
 function changeSheet() {
     const sheetSelect = $('sheetSelect');
