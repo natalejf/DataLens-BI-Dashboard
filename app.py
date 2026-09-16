@@ -128,10 +128,12 @@ st.markdown("""
     /* Automated Insight Explanatory Card */
     .insight-card {
         background: #f0fdf4;
+        border: 1px solid #bbf7d0;
         border-left: 4px solid #16a34a;
         border-radius: 8px;
-        padding: 0.8rem 1rem;
-        margin-top: 0.6rem;
+        padding: 0.75rem 1rem;
+        margin-top: 0.75rem;
+        margin-bottom: 0.85rem;
     }
     .insight-title {
         font-weight: 700;
@@ -606,7 +608,7 @@ with tab_full_dashboard:
                 fig_trend.update_layout(
                     title=f"📈 Tendencia Temporal & Suavizado de {metric_col}",
                     template=plotly_template,
-                    height=350,
+                    height=310,
                     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                     margin=dict(l=10, r=10, t=40, b=10)
                 )
@@ -629,7 +631,7 @@ with tab_full_dashboard:
                     template=plotly_template,
                     color_discrete_sequence=palette_colors
                 )
-                fig_scat.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
+                fig_scat.update_layout(height=310, margin=dict(l=10, r=10, t=40, b=10))
                 st.plotly_chart(fig_scat, use_container_width=True)
                 st.markdown(f"""
                 <div class="insight-card">
@@ -646,7 +648,7 @@ with tab_full_dashboard:
                     template=plotly_template,
                     color_discrete_sequence=palette_colors
                 )
-                fig_hist.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
+                fig_hist.update_layout(height=310, margin=dict(l=10, r=10, t=40, b=10))
                 st.plotly_chart(fig_hist, use_container_width=True)
         
     with row1_c2:
@@ -664,7 +666,7 @@ with tab_full_dashboard:
                     color=val_c,
                     color_continuous_scale="Viridis"
                 )
-                fig_bar.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
+                fig_bar.update_layout(height=310, margin=dict(l=10, r=10, t=40, b=10))
                 st.plotly_chart(fig_bar, use_container_width=True)
                 
                 top_category_name = df_cat.iloc[0][cat_c]
@@ -684,7 +686,7 @@ with tab_full_dashboard:
                     template=plotly_template,
                     color_discrete_sequence=palette_colors
                 )
-                fig_hist.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
+                fig_hist.update_layout(height=310, margin=dict(l=10, r=10, t=40, b=10))
                 st.plotly_chart(fig_hist, use_container_width=True)
 
     # ROW 2: ADVANCED RESOURCE (TREEMAP HIERARCHICAL BREAKDOWN)
@@ -703,7 +705,7 @@ with tab_full_dashboard:
                     color=val_c,
                     color_continuous_scale="Teal"
                 )
-                fig_tree.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
+                fig_tree.update_layout(height=310, margin=dict(l=10, r=10, t=40, b=10))
                 st.plotly_chart(fig_tree, use_container_width=True)
                 
                 st.markdown(f"""
@@ -726,7 +728,7 @@ with tab_full_dashboard:
                         title=f"🫧 Análisis de Burbujas: {num_cols[0]} vs {sec_c}",
                         template=plotly_template
                     )
-                    df_scat2.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
+                    df_scat2.update_layout(height=310, margin=dict(l=10, r=10, t=40, b=10))
                     st.plotly_chart(df_scat2, use_container_width=True)
                     
                     st.markdown(f"""
@@ -743,7 +745,7 @@ with tab_full_dashboard:
                         title=f"📦 Diagrama de Caja (Boxplot) de {num_cols[0]}",
                         template=plotly_template
                     )
-                    fig_box.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
+                    fig_box.update_layout(height=310, margin=dict(l=10, r=10, t=40, b=10))
                     st.plotly_chart(fig_box, use_container_width=True)
 
     st.divider()
@@ -796,7 +798,7 @@ with tab_full_dashboard:
                                     color_discrete_sequence=palette_colors
                                 )
                                 fig_pca.update_traces(marker=dict(size=9, opacity=0.8, line=dict(width=1, color='white')))
-                                fig_pca.update_layout(height=380, margin=dict(l=10, r=10, t=40, b=10))
+                                fig_pca.update_layout(height=320, margin=dict(l=10, r=10, t=40, b=10))
                                 st.plotly_chart(fig_pca, use_container_width=True)
                                 
                                 cluster_counts = df_cluster['Cluster'].value_counts()
@@ -843,7 +845,7 @@ with tab_full_dashboard:
                                 title=f"🚨 Detección de Anomalías (Isolation Forest) sobre {anom_feature}",
                                 template=plotly_template
                             )
-                            fig_anom.update_layout(height=380, margin=dict(l=10, r=10, t=40, b=10))
+                            fig_anom.update_layout(height=320, margin=dict(l=10, r=10, t=40, b=10))
                             st.plotly_chart(fig_anom, use_container_width=True)
                             
                             n_anom = (preds == -1).sum()
@@ -880,7 +882,7 @@ with tab_full_dashboard:
                         template=plotly_template,
                         color_discrete_sequence=[palette_colors[0]]
                     )
-                    fig_reg.update_layout(height=380, margin=dict(l=10, r=10, t=40, b=10))
+                    fig_reg.update_layout(height=320, margin=dict(l=10, r=10, t=40, b=10))
                     st.plotly_chart(fig_reg, use_container_width=True)
                     st.warning(f"⚠️ No es posible calcular la regresión lineal porque todos los valores de la variable predictora '{x_reg}' son idénticos o no presentan variación.")
                 else:
@@ -894,7 +896,7 @@ with tab_full_dashboard:
                             template=plotly_template,
                             color_discrete_sequence=[palette_colors[0]]
                         )
-                        fig_reg.update_layout(height=380, margin=dict(l=10, r=10, t=40, b=10))
+                        fig_reg.update_layout(height=320, margin=dict(l=10, r=10, t=40, b=10))
                         st.plotly_chart(fig_reg, use_container_width=True)
                         
                         trend_dir = "creciente (positiva)" if slope > 0 else "decreciente (negativa)"
@@ -914,7 +916,7 @@ with tab_full_dashboard:
                             template=plotly_template,
                             color_discrete_sequence=[palette_colors[0]]
                         )
-                        fig_reg.update_layout(height=380, margin=dict(l=10, r=10, t=40, b=10))
+                        fig_reg.update_layout(height=320, margin=dict(l=10, r=10, t=40, b=10))
                         st.plotly_chart(fig_reg, use_container_width=True)
                         st.warning(f"⚠️ No se pudo calcular el ajuste lineal: {e}")
 
@@ -935,7 +937,7 @@ with tab_full_dashboard:
                     title="🔥 Matriz de Correlación de Pearson",
                     template=plotly_template
                 )
-                fig_corr.update_layout(height=415, margin=dict(l=10, r=10, t=40, b=10))
+                fig_corr.update_layout(height=365, margin=dict(l=10, r=10, t=40, b=10))
                 st.plotly_chart(fig_corr, use_container_width=True)
                 
                 try:
@@ -970,7 +972,7 @@ with tab_full_dashboard:
                     template=plotly_template,
                     color_discrete_sequence=[palette_colors[1]]
                 )
-                fig_violin.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
+                fig_violin.update_layout(height=300, margin=dict(l=10, r=10, t=40, b=10))
                 st.plotly_chart(fig_violin, use_container_width=True)
                 
                 skew_val = df_filtered[selected_stat_col].skew()
