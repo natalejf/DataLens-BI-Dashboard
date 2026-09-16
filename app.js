@@ -57,9 +57,15 @@ function setupEventListeners() {
         if (btnExpandSidebar) {
             btnExpandSidebar.hidden = !isCollapsed;
         }
-        setTimeout(() => {
-            charts.forEach(c => { if (c && typeof c.resize === 'function') c.resize(); });
-        }, 300);
+        const resizeAllCharts = () => {
+            charts.forEach(c => {
+                if (c && typeof c.resize === 'function') c.resize();
+            });
+        };
+        resizeAllCharts();
+        setTimeout(resizeAllCharts, 100);
+        setTimeout(resizeAllCharts, 260);
+        setTimeout(resizeAllCharts, 350);
     }
 
     if (btnToggleSidebar) {

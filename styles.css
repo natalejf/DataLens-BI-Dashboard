@@ -191,28 +191,29 @@ html, body {
 .kpi-sparkline-svg { height: 24px; width: 60px; }
 
 /* CHARTS GRID (MULTI-CHART DASHBOARD) */
-.charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+.charts-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; width: 100%; max-width: 100%; }
 .charts-grid .full-width-chart { grid-column: span 2; }
-.charts-dual-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.charts-dual-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; width: 100%; max-width: 100%; }
 
 @media (max-width: 1024px) {
-    .charts-grid { grid-template-columns: 1fr; }
+    .charts-grid { grid-template-columns: minmax(0, 1fr); }
     .charts-grid .full-width-chart { grid-column: span 1; }
-    .charts-dual-grid { grid-template-columns: 1fr; }
+    .charts-dual-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
-.chart-card { background: var(--bg-card); padding: 20px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; transition: box-shadow 0.2s; }
+.chart-card { background: var(--bg-card); padding: 20px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; transition: box-shadow 0.2s; min-width: 0; max-width: 100%; overflow: hidden; }
 .chart-card:hover { box-shadow: var(--shadow-md); }
-.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.chart-title { font-size: 14px; font-weight: 700; color: var(--text-primary); }
-.chart-actions { display: flex; align-items: center; gap: 8px; }
+.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; min-width: 0; }
+.chart-title { font-size: 14px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chart-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .chart-type-select { padding: 4px 10px; font-size: 11px; font-weight: 600; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-app); color: var(--text-secondary); cursor: pointer; outline: none; }
 .btn-project { background: var(--bg-app); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; color: var(--text-secondary); font-weight: 600; transition: all 0.2s; }
 .btn-project.active { background: var(--accent); color: white; border-color: var(--accent); }
 .btn-icon { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; border-radius: 4px; }
 .btn-icon:hover { color: var(--accent); background: var(--accent-light); }
 
-.chart-body { position: relative; height: 280px; width: 100%; }
+.chart-body { position: relative; height: 280px; width: 100%; min-width: 0; max-width: 100%; overflow: hidden; }
+.chart-body canvas { max-width: 100% !important; max-height: 100% !important; display: block; }
 
 /* CATEGORY BREAKDOWN MATRIX CARD */
 .category-matrix-card { background: var(--bg-card); padding: 20px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
